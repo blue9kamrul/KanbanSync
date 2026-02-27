@@ -3,6 +3,9 @@ import { getBoardData } from '../../../lib/dataAccessLayer';
 import KanbanBoard from '../../../components/features/board/KanbanBoard';
 import { notFound } from 'next/navigation';
 
+// Never pre-render at build time — this page queries the database at runtime
+export const dynamic = 'force-dynamic';
+
 interface BoardPageProps {
     params: Promise<{ boardId: string }>;
 }

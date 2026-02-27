@@ -1,6 +1,9 @@
 import { prisma } from '../lib/db';
 import { redirect } from 'next/navigation';
 
+// Never pre-render at build time — this page queries the database at runtime
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   // Find the first available board (from our seed)
   // for dev purpose right now we assume there is only one user and one board. In a real app, we would show a dashboard with all boards or redirect to a "create your first board" page.
