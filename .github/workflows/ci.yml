@@ -27,3 +27,22 @@ jobs:
 
       - name: Build Typecheck
         run: npm run build
+
+
+# 1. No test step
+# If your project ever has tests (jest, vitest, etc.), there's no npm run test step. Tests are arguably the most important CI check.
+
+# 2. No environment variables for the build
+# Next.js with Prisma typically needs DATABASE_URL and other env vars to build successfully. If next build hits Prisma at build time, it will fail in CI without secrets configured via env: or GitHub Secrets.
+
+# 3. No Node.js version matrix
+# Testing only on Node 20 is fine for now, but you can't catch compatibility issues across versions.
+
+# 4. npm run build doesn't just typecheck
+# It runs a full production build — slow and heavy for just catching type errors. A dedicated npm run typecheck (running tsc --noEmit) would be faster and separate concerns.
+
+# 5. No caching of Next.js build cache
+# You can cache .next/cache to speed up subsequent builds significantly:
+
+# 6. No failure notifications or branch protection rules
+# The CI file alone doesn't enforce anything — you also need to enable branch protection rules on GitHub to actually block merges when CI fails.

@@ -1,14 +1,77 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+  output   = "../src/generated/prisma" 
 }
 
 datasource db {
   provider = "postgresql"
 }
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  boards    Board[] 
+  // This is not a real database column. It's a relation field — a virtual field that tells Prisma "a User has many Boards". It enables prisma.user.findUnique({ include: { boards: true } }). The [] means one-to-many.
+  createdAt DateTime @default(now())
+
+  @@map("users")
+}
+
+model Board {
+  id        String   @id @default(cuid())
+  title     String
+  userId    String 
+  // The foreign key column. Stores the id of the User who owns this board. This is the actual column in the database.
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Defines the relation to the User model. fields: [userId] — the local foreign key column. references: [id] — the column in User it points to. onDelete: Cascade — if the User is deleted, all their Boards are automatically deleted too. Without this, deleting a user with boards would throw a foreign key violation error.
+  columns   Column[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("boards")
+}
+
+model Column {
+  id        String   @id @default(cuid())
+  title     String
+  order     Int      // To keep columns in the correct sequence
+  boardId   String // Foreign key to the Board it belongs to
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("columns")
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  description String? // optional field for task details
+  status      TaskStatus // E.g., "TODO", "IN_PROGRESS", "DONE"
+  order       Int      // For drag-and-drop sequencing
+  columnId    String
+  column      Column   @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("tasks")
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+// TODO:
+// 5. User has no password / auth field
+// If you're doing credentials-based auth, there's no password or hashedPassword field. If using NextAuth/OAuth, there are no Session or Account models. This depends on your auth strategy, but it's worth noting.
+
+// 6. No @@index on foreign keys
+// Foreign key columns like userId, boardId, columnId benefit from database indexes for fast lookups:
+
+// Without indexes, queries like "get all boards for a user" do a full table scan. Adding @@index([userId]) on Board and similar on Column and Task improves performance.
+
+ 
