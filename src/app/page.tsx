@@ -1,16 +1,21 @@
 import { prisma } from '../lib/db';
 import { redirect } from 'next/navigation';
+import { auth } from '../../auth';
 
 // Never pre-render at build time — this page queries the database at runtime
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  // Find the first available board (from our seed)
-  // for dev purpose right now we assume there is only one user and one board. In a real app, we would show a dashboard with all boards or redirect to a "create your first board" page.
+  const session = await auth();
+
+  if (!session?.user) {
+    redirect('/login');
+  }
+
+  // Find the first available board for the logged-in user
   const firstBoard = await prisma.board.findFirst();
 
   if (firstBoard) {
-    // Automatically route the user to the dynamic board page
     redirect(`/board/${firstBoard.id}`);
   }
 

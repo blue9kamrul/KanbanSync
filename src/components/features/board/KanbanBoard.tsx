@@ -22,30 +22,45 @@ export default function KanbanBoard({ initialBoard }: KanbanBoardProps) {
     const [optimisticColumns, addOptimisticUpdate] = useOptimistic(
         initialBoard.columns,
         (state, update: { taskId: string; newColumnId: string; newOrder: number }) => {
-            // Deep clone the state so we don't mutate the original
-            const newState = structuredClone(state);
+            // Find the source and destination columns
+            const sourceColIndex = state.findIndex(col => col.tasks.some(t => t.id === update.taskId));
+            const destColIndex = state.findIndex(col => col.id === update.newColumnId);
 
-            let movedTask = null;
+            if (sourceColIndex === -1 || destColIndex === -1) return state;
 
-            // Remove task from old column
-            for (const col of newState) {
-                const taskIndex = col.tasks.findIndex(t => t.id === update.taskId);
-                if (taskIndex > -1) {
-                    [movedTask] = col.tasks.splice(taskIndex, 1);
-                    break;
-                }
+            // Find the actual task
+            const taskToMove = state[sourceColIndex].tasks.find(t => t.id === update.taskId);
+            if (!taskToMove) return state;
+
+            // Create a NEW state array, but KEEP old references for untouched columns
+            const newState = [...state];
+
+            // If moving within the SAME column
+            if (sourceColIndex === destColIndex) {
+                const newTasks = [...newState[sourceColIndex].tasks];
+                const [movedTask] = newTasks.splice(newTasks.findIndex(t => t.id === update.taskId), 1);
+
+                // Update properties and insert
+                newTasks.splice(update.newOrder, 0, { ...movedTask, order: update.newOrder });
+
+                newState[sourceColIndex] = { ...newState[sourceColIndex], tasks: newTasks };
+                return newState;
             }
 
-            if (!movedTask) return state;
+            // If moving to a DIFFERENT column
+            const newSourceTasks = newState[sourceColIndex].tasks.filter(t => t.id !== update.taskId);
+            const newDestTasks = [...newState[destColIndex].tasks];
 
-            // Update task properties and push to new column
-            movedTask.columnId = update.newColumnId;
-            movedTask.order = update.newOrder;
+            const updatedTask = {
+                ...taskToMove,
+                columnId: update.newColumnId,
+                order: update.newOrder
+            };
 
-            const targetCol = newState.find(c => c.id === update.newColumnId);
-            if (targetCol) {
-                targetCol.tasks.splice(update.newOrder, 0, movedTask);
-            }
+            newDestTasks.splice(update.newOrder, 0, updatedTask);
+
+            newState[sourceColIndex] = { ...newState[sourceColIndex], tasks: newSourceTasks };
+            newState[destColIndex] = { ...newState[destColIndex], tasks: newDestTasks };
 
             return newState;
         }
@@ -176,7 +191,7 @@ export default function KanbanBoard({ initialBoard }: KanbanBoardProps) {
                 )}
             </div>
 
-            {/* 3. Disable Dragging when filtering */}
+            {/* Disable Dragging when filtering */}
             <DndContext
                 collisionDetection={closestCorners}
                 onDragStart={isSearchActive ? undefined : handleDragStart}
@@ -190,7 +205,7 @@ export default function KanbanBoard({ initialBoard }: KanbanBoardProps) {
                     ))}
                 </div>
 
-                {/* The Magic Overlay */}
+                {/* The Overlay */}
                 <DragOverlay>
                     {activeTask ? (
                         // We render a clone of the task here. 

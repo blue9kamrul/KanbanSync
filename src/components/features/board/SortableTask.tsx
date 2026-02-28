@@ -3,16 +3,12 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Task } from '../../../generated/prisma/client';
+import { memo } from 'react';
 
-export default function SortableTask({ task }: { task: Task }) {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging,
-    } = useSortable({ id: task.id });
+export default memo(function SortableTask({ task }: { task: Task }) {
+    console.log("Rendering Task:", task.id);
+
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -34,4 +30,4 @@ export default function SortableTask({ task }: { task: Task }) {
             <h3 className="text-sm font-medium text-gray-900">{task.title}</h3>
         </div>
     );
-}
+})

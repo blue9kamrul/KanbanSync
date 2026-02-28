@@ -6,12 +6,14 @@ import SortableTask from './SortableTask';
 import { Prisma } from '../../../generated/prisma/client';
 import { useState } from 'react';
 import NewTaskModal from './NewTaskModal';
+import { memo } from 'react';
 
 type ColumnWithTasks = Prisma.ColumnGetPayload<{
     include: { tasks: true };
 }>;
 
-export default function BoardColumn({ column }: { column: ColumnWithTasks }) {
+export default memo(function BoardColumn({ column }: { column: ColumnWithTasks }) {
+    console.log("Rendering Column:", column.id);
     // Make the entire column a drop target
     const { setNodeRef } = useDroppable({
         id: column.id,
@@ -64,4 +66,5 @@ export default function BoardColumn({ column }: { column: ColumnWithTasks }) {
             />
         </div>
     );
-}
+})
+
