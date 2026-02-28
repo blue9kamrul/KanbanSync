@@ -4,8 +4,8 @@ import { useOptimistic, startTransition } from 'react';
 import { BoardWithColumnsAndTasks } from '../../../types/board';
 import { moveTask } from '../../../actions/taskActions';
 import { DndContext, DragEndEvent, closestCorners } from '@dnd-kit/core';
-import SortableTask from './SortableTask';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+
+import BoardColumn from './BoardColumn';
 import { TaskStatus } from '../../../types/board';
 
 interface KanbanBoardProps {
@@ -78,33 +78,10 @@ export default function KanbanBoard({ initialBoard }: KanbanBoardProps) {
     };
 
     return (
-        <DndContext id="kanban-dnd" collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
+        <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
             <div className="flex flex-1 gap-6 overflow-x-auto pb-4 items-start">
                 {optimisticColumns.map((column) => (
-                    <div
-                        key={column.id}
-                        className="w-80 shrink-0 bg-gray-200/80 rounded-xl p-4 flex flex-col gap-4 shadow-sm"
-                    >
-                        <div className="flex justify-between items-center px-1">
-                            <h2 className="font-semibold text-gray-700">{column.title}</h2>
-                            <span className="text-xs font-medium bg-gray-300 text-gray-700 px-2 py-1 rounded-full">
-                                {column.tasks.length}
-                            </span>
-                        </div>
-
-                        {/* dnd-kit context for the list of tasks */}
-                        <SortableContext
-                            id={column.id}
-                            items={column.tasks.map(t => t.id)}
-                            strategy={verticalListSortingStrategy}
-                        >
-                            <div className="flex flex-col gap-3 min-h-[150px]">
-                                {column.tasks.map((task) => (
-                                    <SortableTask key={task.id} task={task} />
-                                ))}
-                            </div>
-                        </SortableContext>
-                    </div>
+                    <BoardColumn key={column.id} column={column} />
                 ))}
             </div>
         </DndContext>
