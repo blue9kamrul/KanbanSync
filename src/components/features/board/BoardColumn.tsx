@@ -4,6 +4,8 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import SortableTask from './SortableTask';
 import { Prisma } from '../../../generated/prisma/client';
+import { useState } from 'react';
+import NewTaskModal from './NewTaskModal';
 
 type ColumnWithTasks = Prisma.ColumnGetPayload<{
     include: { tasks: true };
@@ -18,6 +20,7 @@ export default function BoardColumn({ column }: { column: ColumnWithTasks }) {
             column,
         },
     });
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     return (
         <div
@@ -43,6 +46,22 @@ export default function BoardColumn({ column }: { column: ColumnWithTasks }) {
                     ))}
                 </div>
             </SortableContext>
+            {/* The Add Button */}
+            <button
+                onClick={() => setIsModalOpen(true)}
+                className="mt-2 text-gray-500 hover:text-gray-800 hover:bg-gray-300/50 p-2 rounded-md flex items-center gap-2 transition-colors font-medium text-sm"
+            >
+                <span>+</span> Add a card
+            </button>
+
+            {/* The Portal Modal */}
+            <NewTaskModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                boardId={column.boardId}
+                columnId={column.id}
+                columnTitle={column.title}
+            />
         </div>
     );
 }
