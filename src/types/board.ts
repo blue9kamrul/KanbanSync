@@ -1,4 +1,4 @@
-import { Prisma } from '../generated/prisma/client';
+import type { Prisma } from '../generated/prisma/client';
 
 // Plain const — safe to import in Client Components (no Prisma runtime)
 export const TaskStatus = {
