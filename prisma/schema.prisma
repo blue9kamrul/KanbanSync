@@ -80,26 +80,29 @@ model Board {
 model Column {
   id        String   @id @default(cuid())
   title     String
-  order     Int      // To keep columns in the correct sequence
-  boardId   String // Foreign key to the Board it belongs to
+  order     Int      
+  wipLimit  Int?     // NEW: Optional WIP limit (e.g., max 3 items)
+  boardId   String
   board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
   tasks     Task[]
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @updatedAt // Added this for consistency
 
   @@map("columns")
 }
 
+
 model Task {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   title       String
-  description String? // optional field for task details
-  status      TaskStatus // E.g., "TODO", "IN_PROGRESS", "DONE"
-  order       Int      // For drag-and-drop sequencing
+  description String?
+  status      TaskStatus   
+  category    TaskCategory @default(FEATURE) // NEW: Enforce task types
+  order       Int          
   columnId    String
-  column      Column   @relation(fields: [columnId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  column      Column       @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   @@map("tasks")
 }
@@ -108,6 +111,12 @@ enum TaskStatus {
   TODO
   IN_PROGRESS
   DONE
+}
+
+enum TaskCategory {
+  FEATURE
+  BUG
+  CHORE
 }
 
 // TODO:

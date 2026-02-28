@@ -21,7 +21,7 @@ export async function createBoard(formData: FormData) {
             columns: {
                 create: [
                     { title: 'To Do', order: 0 },
-                    { title: 'In Progress', order: 1 },
+                    { title: 'In Progress', order: 1, wipLimit: 3 }, // Strict WIP Limit applied!
                     { title: 'Done', order: 2 },
                 ],
             },

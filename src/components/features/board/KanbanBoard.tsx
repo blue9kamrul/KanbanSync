@@ -193,6 +193,7 @@ export default function KanbanBoard({ initialBoard }: KanbanBoardProps) {
 
             {/* Disable Dragging when filtering */}
             <DndContext
+                id="kanban-board"
                 collisionDetection={closestCorners}
                 onDragStart={isSearchActive ? undefined : handleDragStart}
                 onDragEnd={isSearchActive ? undefined : handleDragEnd}

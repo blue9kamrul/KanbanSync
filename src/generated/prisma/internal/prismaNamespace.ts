@@ -1032,6 +1032,7 @@ export const ColumnScalarFieldEnum = {
   id: 'id',
   title: 'title',
   order: 'order',
+  wipLimit: 'wipLimit',
   boardId: 'boardId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -1045,6 +1046,7 @@ export const TaskScalarFieldEnum = {
   title: 'title',
   description: 'description',
   status: 'status',
+  category: 'category',
   order: 'order',
   columnId: 'columnId',
   createdAt: 'createdAt',
@@ -1137,6 +1139,20 @@ export type EnumTaskStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$Prism
  * Reference to a field of type 'TaskStatus[]'
  */
 export type ListEnumTaskStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TaskStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'TaskCategory'
+ */
+export type EnumTaskCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TaskCategory'>
+    
+
+
+/**
+ * Reference to a field of type 'TaskCategory[]'
+ */
+export type ListEnumTaskCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TaskCategory[]'>
     
 
 

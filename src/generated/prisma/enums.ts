@@ -16,3 +16,12 @@ export const TaskStatus = {
 } as const
 
 export type TaskStatus = (typeof TaskStatus)[keyof typeof TaskStatus]
+
+
+export const TaskCategory = {
+  FEATURE: 'FEATURE',
+  BUG: 'BUG',
+  CHORE: 'CHORE'
+} as const
+
+export type TaskCategory = (typeof TaskCategory)[keyof typeof TaskCategory]

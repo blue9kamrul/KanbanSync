@@ -2,7 +2,8 @@
 
 import { prisma } from '../lib/db';
 import { revalidatePath } from 'next/cache';
-import { TaskStatus } from '../generated/prisma/client';
+import { TaskStatus, TaskCategory } from '../generated/prisma/client';
+import { auth } from '../../auth';
 
 export async function moveTask(
     taskId: string,
@@ -44,9 +45,24 @@ export async function createTask(
     boardId: string,
     columnId: string,
     title: string,
-    status: TaskStatus
+    status: TaskStatus,
+    category: TaskCategory
 ) {
+    const session = await auth();
+    if (!session?.user) return { success: false, error: 'Unauthorized' };
+
     try {
+        // Enforce WIP limit server-side
+        const column = await prisma.column.findUnique({
+            where: { id: columnId },
+            include: { _count: { select: { tasks: true } } },
+        });
+        if (column?.wipLimit !== null && column?.wipLimit !== undefined) {
+            if (column._count.tasks >= column.wipLimit) {
+                return { success: false, error: `WIP limit of ${column.wipLimit} reached for "${column.title}"` };
+            }
+        }
+
         // Get the highest order number in the column to place the new task at the bottom
         const lastTask = await prisma.task.findFirst({
             where: { columnId },
@@ -58,15 +74,17 @@ export async function createTask(
             data: {
                 title,
                 status,
+                category,
                 order: newOrder,
                 columnId,
             },
         });
 
-        revalidatePath(`/board/${boardId}`); // Revalidate the specific board page
+        revalidatePath(`/board/${boardId}`);
         return { success: true, task };
     } catch (error) {
-        console.error("Failed to create task:", error);
-        return { success: false, error: 'Failed to create task' };
+        const message = error instanceof Error ? error.message : String(error);
+        console.error("Failed to create task:", message);
+        return { success: false, error: message };
     }
 }

@@ -37,6 +37,7 @@ async function main() {
                     {
                         title: 'In Progress',
                         order: 1,
+                        wipLimit: 3,
                         tasks: {
                             create: [
                                 { title: 'Build Server Actions', status: TaskStatus.IN_PROGRESS, order: 0 },
