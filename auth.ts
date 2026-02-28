@@ -19,4 +19,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             clientSecret: process.env.GOOGLE_SECRET,
         }),
     ],
+    callbacks: {
+        // Persist the user's DB id in the JWT token on first sign-in
+        async jwt({ token, user }) {
+            if (user) token.id = user.id;
+            return token;
+        },
+        // Expose the id on the session object so server components can read it
+        async session({ session, token }) {
+            if (token.id) session.user.id = token.id as string;
+            return session;
+        },
+    },
 });

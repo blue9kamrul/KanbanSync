@@ -1,20 +1,30 @@
 import { prisma } from './db';
 import { cache } from 'react';
 import { notFound } from 'next/navigation';
+import { auth } from '../../auth';
 import { BoardWithColumnsAndTasks } from '../types/board';
+
 
 // 'cache' memoizes the result for the duration of the server request
 export const getBoardData = cache(async (boardId: string): Promise<BoardWithColumnsAndTasks> => {
     if (!boardId) notFound(); // guard before any DB call
 
-    const board = await prisma.board.findUnique({
-        where: { id: boardId },
+    // 1. Get the current user session
+    const session = await auth();
+    if (!session?.user?.id) throw new Error('Unauthorized');
+
+    // 2. Fetch the board AND verify ownership simultaneously
+    const board = await prisma.board.findFirst({
+        where: {
+            id: boardId,
+            userId: session.user.id // Security checkpoint! 
+        },
         include: {
             columns: {
-                orderBy: { order: 'asc' }, // Keep columns in the right order
+                orderBy: { order: 'asc' },
                 include: {
                     tasks: {
-                        orderBy: { order: 'asc' }, // Keep tasks in the right order
+                        orderBy: { order: 'asc' },
                     },
                 },
             },
