@@ -3,14 +3,12 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { memo, useState, useTransition } from 'react';
-import type { TaskCategory, Task, Prisma } from '../../../generated/prisma/browser';
+import type { TaskCategory, Prisma } from '../../../generated/prisma/browser';
 import { deleteTask } from '@/src/actions/taskActions';
 import EditTaskModal from './EditTaskModal';
 import Modal from '../../ui/Modal';
 
-type TaskType = Prisma.TaskGetPayload<{
-    include: { column: true } // Assuming you can access column for boardId, or we can pass boardId as a prop. 
-}>;
+type TaskType = Prisma.TaskModel;
 
 // Helper function to color-code categories
 const getCategoryColor = (category: TaskCategory) => {

@@ -60,7 +60,7 @@ export default memo(function BoardColumn({ column }: { column: ColumnWithTasks }
                 {/* min-h ensures the column always has a drop area, even when empty */}
                 <div className="flex flex-col gap-3 min-h-[150px]">
                     {column.tasks.map((task) => (
-                        <SortableTask key={task.id} task={task} />
+                        <SortableTask key={task.id} task={task} boardId={column.boardId} />
                     ))}
                 </div>
             </SortableContext>
