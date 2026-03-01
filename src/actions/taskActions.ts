@@ -88,3 +88,38 @@ export async function createTask(
         return { success: false, error: message };
     }
 }
+
+
+export async function deleteTask(taskId: string, boardId: string) {
+    try {
+        await prisma.task.delete({
+            where: { id: taskId },
+        });
+
+        revalidatePath(`/board/${boardId}`);
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to delete task:", error);
+        return { success: false, error: 'Failed to delete task' };
+    }
+}
+
+export async function updateTask(
+    taskId: string,
+    boardId: string,
+    title: string,
+    category: TaskCategory
+) {
+    try {
+        await prisma.task.update({
+            where: { id: taskId },
+            data: { title, category },
+        });
+
+        revalidatePath(`/board/${boardId}`);
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to update task:", error);
+        return { success: false, error: 'Failed to update task' };
+    }
+}
