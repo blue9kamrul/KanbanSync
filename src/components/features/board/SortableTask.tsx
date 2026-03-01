@@ -39,14 +39,6 @@ export default memo(function SortableTask({ task, boardId
         zIndex: isDragging ? 999 : 'auto',
     };
 
-    const handleDelete = () => {
-        if (confirm("Are you sure you want to delete this task?")) {
-            startTransition(() => {
-                deleteTask(task.id, boardId);
-            });
-        }
-    };
-
     // New function to actually execute the delete
     const confirmDelete = () => {
         startTransition(async () => {
