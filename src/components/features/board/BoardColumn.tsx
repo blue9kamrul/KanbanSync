@@ -32,9 +32,9 @@ export default memo(function BoardColumn({ column, boardId, userRole }: { column
     return (
         <div
             ref={setNodeRef}
-            className={`w-80 shrink-0 rounded-xl p-4 flex flex-col gap-4 shadow-sm transition-colors
-        ${isOverLimit ? 'bg-red-50 border-2 border-red-300' : 'bg-gray-200/80 border-2 border-transparent'}
-      `}
+            className={`flex-1 min-w-[220px] max-w-[320px] rounded-xl p-4 flex flex-col gap-4 shadow-sm transition-colors
+                ${isOverLimit ? 'bg-red-50 border-2 border-red-300' : 'bg-gray-200/80 border-2 border-transparent'}
+            `}
         >
             <div className="flex justify-between items-center px-1">
                 <h2 className={`font-semibold ${isOverLimit ? 'text-red-700' : 'text-gray-700'}`}>
