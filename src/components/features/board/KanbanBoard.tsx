@@ -1,10 +1,12 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useState, useTransition, useEffect } from 'react';
 import { useOptimistic } from 'react';
 import { BoardWithColumnsAndTasks } from '../../../types/board';
 import { moveTask } from '../../../actions/taskActions';
 import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, closestCorners } from '@dnd-kit/core';
+import { useRouter } from 'next/navigation';
+import { getPusherClient } from '../../../lib/pusher';
 
 import BoardColumn from './BoardColumn';
 import { TaskStatus } from '../../../types/board';
@@ -15,6 +17,7 @@ interface KanbanBoardProps {
 type TaskType = BoardWithColumnsAndTasks['columns'][number]['tasks'][number];
 
 export default function KanbanBoard({ initialBoard }: KanbanBoardProps) {
+    const router = useRouter();
     // Add a new "movedTask" property to the state, which we can use to render the dragging task in the overlay
     const [activeTask, setActiveTask] = useState<TaskType | null>(null);
     // Optimistic Hook
@@ -74,6 +77,27 @@ export default function KanbanBoard({ initialBoard }: KanbanBoardProps) {
 
     // The concurrent hook
     const [isPending, startTransition] = useTransition();
+
+    // The Real-Time Subscription
+    useEffect(() => {
+        const pusher = getPusherClient();
+        const channelName = `board-${initialBoard.id}`;
+
+        // Subscribe to the specific board
+        const channel = pusher.subscribe(channelName);
+
+        // Listen for the event we named in our server action
+        channel.bind('board-updated', () => {
+            // 3. When triggered, silently refetch the Server Component data
+            router.refresh();
+        });
+
+        // Cleanup when the user leaves the page
+        return () => {
+            pusher.unsubscribe(channelName);
+            pusher.disconnect();
+        };
+    }, [initialBoard.id, router]);
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;

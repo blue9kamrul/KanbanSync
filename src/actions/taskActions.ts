@@ -4,6 +4,7 @@ import { prisma } from '../lib/db';
 import { revalidatePath } from 'next/cache';
 import { TaskStatus, TaskCategory } from '../generated/prisma/client';
 import { auth } from '../../auth';
+import { pusherServer } from '../lib/pusher';
 
 export async function moveTask(
     taskId: string,
@@ -29,6 +30,11 @@ export async function moveTask(
                 data: { columnId: newColumnId, order: newOrder, status: newStatus },
             }),
         ]);
+
+        // Broadcast the change to the specific board's channel
+        await pusherServer.trigger(`board-${boardId}`, 'board-updated', {
+            message: 'Board data changed'
+        });
 
         // Revalidate the cache
         // This tells Next.js: "The data changed, throw away the cached HTML for the board page"
