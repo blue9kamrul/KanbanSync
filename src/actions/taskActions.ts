@@ -4,7 +4,7 @@ import { prisma } from '../lib/db';
 import { revalidatePath } from 'next/cache';
 import { TaskStatus, TaskCategory } from '../generated/prisma/client';
 import { auth } from '../../auth';
-import { pusherServer } from '../lib/pusher';
+import { pusherServer } from '../lib/pusher-server';
 
 export async function moveTask(
     taskId: string,

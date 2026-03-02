@@ -1,20 +1,11 @@
-import PusherServer from 'pusher';
 import PusherClient from 'pusher-js';
 
-// The Server instance (Used in Server Actions to broadcast events)
-export const pusherServer = new PusherServer({
-    appId: process.env.PUSHER_APP_ID!,
-    key: process.env.NEXT_PUBLIC_PUSHER_KEY!,
-    secret: process.env.PUSHER_SECRET!,
-    cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
-    useTLS: true,
-});
-
-// The Client instance (Used in React Components to listen for events)
-// We use a singleton pattern to prevent multiple connections during re-renders
+// Browser-only client — safe to import in Client Components.
+// PusherServer lives in pusher-server.ts (server-only) to prevent
+// the Node.js `pusher` package from being bundled into the client.
 export const getPusherClient = () => {
     if (!process.env.NEXT_PUBLIC_PUSHER_KEY || !process.env.NEXT_PUBLIC_PUSHER_CLUSTER) {
-        throw new Error("Missing Pusher Keys");
+        throw new Error('Missing Pusher public keys. Set NEXT_PUBLIC_PUSHER_KEY and NEXT_PUBLIC_PUSHER_CLUSTER.');
     }
 
     return new PusherClient(
