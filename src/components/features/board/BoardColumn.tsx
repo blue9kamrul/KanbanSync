@@ -12,8 +12,9 @@ type ColumnWithTasks = Prisma.ColumnGetPayload<{
     include: { tasks: true };
 }>;
 
-export default memo(function BoardColumn({ column }: { column: ColumnWithTasks }) {
+export default memo(function BoardColumn({ column, boardId, userRole }: { column: ColumnWithTasks; boardId?: string; userRole?: string | null }) {
     console.log("Rendering Column:", column.id);
+    const effectiveBoardId = boardId ?? column.boardId;
     // Make the entire column a drop target
     const { setNodeRef } = useDroppable({
         id: column.id,
@@ -60,28 +61,31 @@ export default memo(function BoardColumn({ column }: { column: ColumnWithTasks }
                 {/* min-h ensures the column always has a drop area, even when empty */}
                 <div className="flex flex-col gap-3 min-h-[150px]">
                     {column.tasks.map((task) => (
-                        <SortableTask key={task.id} task={task} boardId={column.boardId} />
+                        <SortableTask key={task.id} task={task} boardId={effectiveBoardId} />
                     ))}
                 </div>
             </SortableContext>
             {/* The Add Button */}
-            <button
-                onClick={() => setIsModalOpen(true)}
-                disabled={isAtLimit}
-                className="mt-2 text-gray-500 hover:text-gray-800 hover:bg-gray-300/50 p-2 rounded-md flex items-center gap-2 transition-colors font-medium text-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-            >
-                <span>+</span> {isAtLimit ? 'WIP limit reached' : 'Add a card'}
-            </button>
+            {/* GUARD: Only show the "Add Task" button if the user is a LEADER */}
+            {userRole === 'LEADER' && (
+                <button
+                    onClick={() => setIsModalOpen(true)}
+                    disabled={isAtLimit}
+                    className="mt-2 w-full py-2 text-gray-500 hover:text-gray-800 hover:bg-gray-300/50 p-2 rounded-md flex items-center gap-2 transition-colors font-medium text-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                >
+                    + Add Task
+                </button>
+            )}
 
             {/* The Portal Modal */}
             <NewTaskModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                boardId={column.boardId}
+                boardId={effectiveBoardId}
                 columnId={column.id}
                 columnTitle={column.title}
             />
-        </div>
+        </div >
     );
 })
 

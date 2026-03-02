@@ -3,38 +3,54 @@
 import { prisma } from '../lib/db';
 import { revalidatePath } from 'next/cache';
 import { TaskStatus, TaskCategory } from '../generated/prisma/client';
-import { auth } from '../../auth';
+// import { auth } from '../../auth';
 import { pusherServer } from '../lib/pusher-server';
+import { getUserRole } from '../lib/permission';
+import { BoardRole } from '../generated/prisma/client';
 
 export async function moveTask(
     taskId: string,
     newColumnId: string,
     newOrder: number,
-    newStatus: TaskStatus,
     boardId: string
 ) {
+    const role = await getUserRole(boardId);
+    if (!role) return { success: false, error: 'Unauthorized' };
     try {
         if (!taskId || !newColumnId || newOrder < 0) {
             return { success: false, error: 'Invalid input' };
         }
-        // Update the database
-        await prisma.$transaction([
-            // Shift other tasks up
-            prisma.task.updateMany({
-                where: { columnId: newColumnId, order: { gte: newOrder }, id: { not: taskId } },
-                data: { order: { increment: 1 } },
-            }),
-            // Place this task
-            prisma.task.update({
-                where: { id: taskId },
-                data: { columnId: newColumnId, order: newOrder, status: newStatus },
-            }),
-        ]);
+        // // Update the database
+        // await prisma.$transaction([
+        //     // Shift other tasks up
+        //     prisma.task.updateMany({
+        //         where: { columnId: newColumnId, order: { gte: newOrder }, id: { not: taskId } },
+        //         data: { order: { increment: 1 } },
+        //     }),
+
+        // Find out which column they are dragging into
+        const targetColumn = await prisma.column.findUnique({ where: { id: newColumnId } });
+        if (!targetColumn) throw new Error("Column not found");
+
+        // GUARD: If a normal MEMBER tries to drag into "Done", reject it!
+        if (targetColumn.title === 'Done' && role === BoardRole.MEMBER) {
+            return { success: false, error: 'Unauthorized: Only Reviewers and Leaders can approve tasks to Done.' };
+        }
+
+        // Update the task (Notice we use targetColumn.title for the status string)
+        await prisma.task.update({
+            where: { id: taskId },
+            data: {
+                columnId: newColumnId,
+                order: newOrder,
+                status: targetColumn.title
+            },
+        });
 
         // Broadcast the change to the specific board's channel
-        await pusherServer.trigger(`board-${boardId}`, 'board-updated', {
-            message: 'Board data changed'
-        });
+        // Fire Pusher
+        await pusherServer.trigger(`board-${boardId}`, 'board-updated', { message: 'Task moved' });
+        revalidatePath(`/board/${boardId}`);
 
         // Revalidate the cache
         // This tells Next.js: "The data changed, throw away the cached HTML for the board page"
@@ -51,11 +67,16 @@ export async function createTask(
     boardId: string,
     columnId: string,
     title: string,
-    status: TaskStatus,
-    category: TaskCategory
+    status: string,
+    category: string
 ) {
-    const session = await auth();
-    if (!session?.user) return { success: false, error: 'Unauthorized' };
+    const role = await getUserRole(boardId);
+    if (role !== BoardRole.LEADER) {
+        return { success: false, error: 'Unauthorized: Only Leaders can create tasks.' };
+    }
+
+    // const session = await auth();
+    // if (!session?.user) return { success: false, error: 'Unauthorized' };
 
     try {
         // Enforce WIP limit server-side
@@ -79,13 +100,14 @@ export async function createTask(
         const task = await prisma.task.create({
             data: {
                 title,
-                status,
-                category,
+                status: status as TaskStatus,
+                category: category as TaskCategory,
                 order: newOrder,
                 columnId,
             },
         });
 
+        await pusherServer.trigger(`board-${boardId}`, 'board-updated', { message: 'Task created' });
         revalidatePath(`/board/${boardId}`);
         return { success: true, task };
     } catch (error) {
@@ -114,12 +136,12 @@ export async function updateTask(
     taskId: string,
     boardId: string,
     title: string,
-    category: TaskCategory
+    category: string
 ) {
     try {
         await prisma.task.update({
             where: { id: taskId },
-            data: { title, category },
+            data: { title, category: category as TaskCategory },
         });
 
         revalidatePath(`/board/${boardId}`);

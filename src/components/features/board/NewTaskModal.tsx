@@ -39,7 +39,7 @@ export default function NewTaskModal({ isOpen, onClose, boardId, columnId, colum
             if (result.success) {
                 // Clear the input so it's fresh for the next time it opens
                 if (inputRef.current) inputRef.current.value = '';
-                if (categoryRef.current) categoryRef.current.value = 'FEATURE';
+                if (categoryRef.current) categoryRef.current.value = TaskCategory.NEW_FEATURE;
                 onClose();
             } else {
                 setErrorMsg(result.error ?? 'Something went wrong');
@@ -75,12 +75,12 @@ export default function NewTaskModal({ isOpen, onClose, boardId, columnId, colum
                     <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
                     <select
                         ref={categoryRef}
-                        defaultValue="FEATURE"
+                        defaultValue={TaskCategory.NEW_FEATURE}
                         className="w-full border border-gray-300 rounded-md p-2 focus:outline-blue-500 bg-white"
                     >
-                        <option value="FEATURE">✨ Feature</option>
-                        <option value="BUG">🐛 Bug</option>
-                        <option value="CHORE">🧹 Chore</option>
+                        <option value={TaskCategory.NEW_FEATURE}>✨ Feature</option>
+                        <option value={TaskCategory.BUG}>🐛 Bug</option>
+                        <option value={TaskCategory.TASK}>🧹 Chore</option>
                     </select>
                 </div>
 

@@ -3,7 +3,8 @@
 import { useRef, useTransition } from 'react';
 import Modal from '../../../components/ui/Modal';
 import { updateTask } from '../../../actions/taskActions';
-import { TaskCategory, Prisma } from '../../../generated/prisma/client';
+import { Prisma } from '../../../generated/prisma/client';
+import { TaskCategory } from '../../../generated/prisma/enums';
 
 type TaskType = Prisma.TaskModel;
 
@@ -55,9 +56,9 @@ export default function EditTaskModal({ isOpen, onClose, task, boardId }: EditTa
                         defaultValue={task.category}
                         className="w-full border border-gray-300 rounded-md p-2 focus:outline-blue-500 bg-white"
                     >
-                        <option value="FEATURE">✨ Feature</option>
-                        <option value="BUG">🐛 Bug</option>
-                        <option value="CHORE">🧹 Chore</option>
+                        <option value={TaskCategory.NEW_FEATURE}>✨ Feature</option>
+                        <option value={TaskCategory.BUG}>🐛 Bug</option>
+                        <option value={TaskCategory.TASK}>🧹 Chore</option>
                     </select>
                 </div>
 

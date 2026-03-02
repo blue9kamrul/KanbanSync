@@ -13,10 +13,11 @@ import { TaskStatus } from '../../../types/board';
 
 interface KanbanBoardProps {
     initialBoard: BoardWithColumnsAndTasks;
+    userRole?: string | null;
 }
 type TaskType = BoardWithColumnsAndTasks['columns'][number]['tasks'][number];
 
-export default function KanbanBoard({ initialBoard }: KanbanBoardProps) {
+export default function KanbanBoard({ initialBoard, userRole }: KanbanBoardProps) {
     const router = useRouter();
     // Add a new "movedTask" property to the state, which we can use to render the dragging task in the overlay
     const [activeTask, setActiveTask] = useState<TaskType | null>(null);
@@ -150,24 +151,21 @@ export default function KanbanBoard({ initialBoard }: KanbanBoardProps) {
         const newColumnId = over.data.current?.sortable?.containerId || over.id as string;
         const newOrder = over.data.current?.sortable?.index ?? 0;
 
-        // We need the status string to match your Prisma enum
-        const targetColumn = initialBoard.columns.find(c => c.id === newColumnId);
-        let newStatus: TaskStatus = TaskStatus.TODO;
-        if (targetColumn?.title === 'In Progress') newStatus = TaskStatus.IN_PROGRESS;
-        if (targetColumn?.title === 'Done') newStatus = TaskStatus.DONE;
-
-        // Instantly update UI, then fire the server action in the background
+        // Instantly update UI for that buttery smooth feel
         startTransition(() => {
-            // Instantly apply the fake visual update
             addOptimisticUpdate({ taskId, newColumnId, newOrder });
         });
 
-        // Fire the server action you wrote
-        const result = await moveTask(taskId, newColumnId, newOrder, newStatus, initialBoard.id);
+        // Fire the server action (Notice: only 4 arguments now!)
+        const result = await moveTask(taskId, newColumnId, newOrder, initialBoard.id);
 
-        if (!result.success) {
-            console.error("Server action failed, React will auto-revert the UI.");
-            // In a real app, you might trigger a toast notification here
+        // If the server rejected it (e.g., a MEMBER dragged to Done)
+        if (!result?.success) {
+            console.error(result?.error);
+            // In a real app, fire a Toast notification here: toast.error(result.error)
+
+            // Revert the Optimistic UI by triggering a hard refresh from the server
+            router.refresh();
         }
     };
 
@@ -224,9 +222,8 @@ export default function KanbanBoard({ initialBoard }: KanbanBoardProps) {
                 onDragCancel={handleDragCancel}
             >
                 <div className="flex flex-1 gap-6 overflow-x-auto pb-4 items-start">
-                    {/* MAKE SURE THIS MAPS OVER filteredColumns! */}
                     {filteredColumns.map((column) => (
-                        <BoardColumn key={column.id} column={column} />
+                        <BoardColumn key={column.id} column={column} boardId={initialBoard.id} userRole={userRole} />
                     ))}
                 </div>
 

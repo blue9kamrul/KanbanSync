@@ -9,27 +9,41 @@ import { BoardWithColumnsAndTasks } from '../types/board';
 export const getBoardData = cache(async (boardId: string): Promise<BoardWithColumnsAndTasks> => {
     if (!boardId) notFound(); // guard before any DB call
 
-    // 1. Get the current user session
+    // Get the current user session
     const session = await auth();
     if (!session?.user?.email) throw new Error('Unauthorized');
 
     // Look up user by email so ownership check works even with a stale JWT
-    // (e.g. after a DB reset, where session.user.id no longer matches the DB row)
+    // after a DB reset, where session.user.id no longer matches the DB row
     const dbUser = await prisma.user.findUnique({ where: { email: session.user.email } });
     if (!dbUser) throw new Error('User record not found – please sign out and sign back in.');
 
-    // 2. Fetch the board AND verify ownership simultaneously
+    // Fetch the board AND verify ownership simultaneously
+    console.log('[DAL] getBoardData: boardId=', boardId, 'sessionEmail=', session.user.email);
     const board = await prisma.board.findFirst({
         where: {
             id: boardId,
-            userId: dbUser.id, // Security checkpoint!
+            // SECURITY: Ensure the user is EITHER the creator OR in the members array
+            OR: [
+                { userId: dbUser.id },
+                { members: { some: { userId: dbUser.id } } }
+            ]
         },
         include: {
+            // Include the members so we can check their roles in the UI later
+            members: {
+                include: { user: true }
+            },
             columns: {
                 orderBy: { order: 'asc' },
                 include: {
                     tasks: {
                         orderBy: { order: 'asc' },
+                        // Include assignees and comments for the new UI
+                        include: {
+                            assignee: true,
+                            comments: { include: { user: true } }
+                        }
                     },
                 },
             },
@@ -37,6 +51,7 @@ export const getBoardData = cache(async (boardId: string): Promise<BoardWithColu
     });
 
     if (!board) notFound(); //triggers not-found.tsx (404 page)
+    console.log('[DAL] getBoardData: found board=', !!board);
 
     return board;
 });

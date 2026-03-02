@@ -2,17 +2,20 @@
 import { getBoardData } from '../../../lib/dataAccessLayer';
 import KanbanBoard from '../../../components/features/board/KanbanBoard';
 import { notFound } from 'next/navigation';
+import { getUserRole } from '../../../lib/permission';
 
 // Never pre-render at build time — this page queries the database at runtime
 export const dynamic = 'force-dynamic';
 
-interface BoardPageProps {
-    params: Promise<{ boardId: string }>;
-}
 
-export default async function BoardPage({ params }: BoardPageProps) {
+export default async function BoardPage({ params }: { params: Promise<{ boardId: string }> }) {
     // 1. Fetch data on the server
-    const board = await getBoardData((await params).boardId);
+    const { boardId } = await params;
+    // Fetch data AND the current user's role simultaneously 
+    const [board, userRole] = await Promise.all([
+        getBoardData(boardId),
+        getUserRole(boardId)
+    ]);
 
     // Fallback in case the DAL didn't throw but returned null
     if (!board) notFound();
@@ -23,8 +26,10 @@ export default async function BoardPage({ params }: BoardPageProps) {
                 <h1 className="text-3xl font-bold text-gray-900">{board.title}</h1>
             </header>
 
-            {/* 2. Pass the data to the Client Component for interactivity */}
-            <KanbanBoard initialBoard={board} />
+            <div className="flex-1 overflow-hidden">
+                {/* Pass the role into the board! */}
+                <KanbanBoard initialBoard={board} userRole={userRole} />
+            </div>
         </main>
     );
 }

@@ -4,6 +4,7 @@ import { prisma } from '../lib/db';
 import { auth } from '../../auth'; // Adjust path to root auth.ts
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
+import { BoardRole } from '../generated/prisma/client';
 
 export async function createBoard(formData: FormData) {
     // Verify Authentication
@@ -18,18 +19,33 @@ export async function createBoard(formData: FormData) {
     const dbUser = await prisma.user.findUnique({ where: { email: session.user.email } });
     if (!dbUser) throw new Error('User record not found – please sign out and sign back in.');
 
-    // Create the Board WITH default columns in a single transaction
+    // Create the Board WITH default columns
+    // NOTE: some Prisma client versions or generated clients may not expose
+    // nested relation writes for `members`. Create the board first, then
+    // create the BoardMember as a separate step to avoid Prisma validation errors.
     const board = await prisma.board.create({
         data: {
             title,
             userId: dbUser.id,
+            // Create the new Agile columns
             columns: {
                 create: [
-                    { title: 'To Do', order: 0 },
-                    { title: 'In Progress', order: 1, wipLimit: 3 }, // Strict WIP Limit applied!
-                    { title: 'Done', order: 2 },
+                    { title: 'Backlog', order: 0 },
+                    { title: 'To Do', order: 1 },
+                    { title: 'In Progress', order: 2, wipLimit: 3 },
+                    { title: 'Review', order: 3 },
+                    { title: 'Done', order: 4 },
                 ],
             },
+        },
+    });
+
+    // Ensure creator is a member/leader of the board.
+    await prisma.boardMember.create({
+        data: {
+            boardId: board.id,
+            userId: dbUser.id,
+            role: BoardRole.LEADER,
         },
     });
 

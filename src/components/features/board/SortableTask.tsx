@@ -14,8 +14,8 @@ type TaskType = Prisma.TaskModel;
 const getCategoryColor = (category: TaskCategory) => {
     switch (category) {
         case 'BUG': return 'bg-red-100 text-red-700 border-red-200';
-        case 'FEATURE': return 'bg-blue-100 text-blue-700 border-blue-200';
-        case 'CHORE': return 'bg-gray-100 text-gray-700 border-gray-200';
+        case 'NEW_FEATURE': return 'bg-blue-100 text-blue-700 border-blue-200';
+        case 'TASK': return 'bg-gray-100 text-gray-700 border-gray-200';
         default: return 'bg-gray-100 text-gray-700 border-gray-200';
     }
 };
