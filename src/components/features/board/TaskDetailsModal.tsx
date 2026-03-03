@@ -1,0 +1,210 @@
+'use client';
+
+import { useState, useTransition } from 'react';
+import Modal from '../../../components/ui/Modal';
+import { addComment, updateTaskDescription, assignTask } from '../../../actions/detailActions';
+import { formatDistanceToNow } from 'date-fns';
+import { BoardWithColumnsAndTasks } from '../../../types/board';
+
+type TaskType = BoardWithColumnsAndTasks['columns'][number]['tasks'][number] & {
+    column?: { title: string } | null;
+};
+type MemberType = BoardWithColumnsAndTasks['members'][number];
+type CommentType = BoardWithColumnsAndTasks['columns'][number]['tasks'][number]['comments'][number];
+
+interface TaskDetailsModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    task: TaskType;
+    boardId: string;
+    members: MemberType[];
+    currentUserEmail?: string | null;
+}
+
+const categoryConfig: Record<string, { label: string; color: string }> = {
+    BUG:         { label: '🐛 Bug',      color: 'bg-red-100 text-red-700 ring-1 ring-red-200' },
+    NEW_FEATURE: { label: '✨ Feature',  color: 'bg-blue-100 text-blue-700 ring-1 ring-blue-200' },
+    TASK:        { label: '🧹 Chore',    color: 'bg-gray-100 text-gray-600 ring-1 ring-gray-200' },
+};
+
+export default function TaskDetailsModal({ isOpen, onClose, task, boardId, members, currentUserEmail }: TaskDetailsModalProps) {
+    const [description, setDescription] = useState(task.description || '');
+    const [saved, setSaved] = useState(false);
+    const [commentText, setCommentText] = useState('');
+    const [isPending, startTransition] = useTransition();
+
+    const cat = categoryConfig[task.category] ?? { label: task.category, color: 'bg-gray-100 text-gray-600' };
+    const assignee = members.find(m => m.user.id === task.assigneeId);
+
+    const handleDescriptionSave = () => {
+        if (description !== task.description) {
+            startTransition(async () => {
+                await updateTaskDescription(task.id, boardId, description);
+                setSaved(true);
+                setTimeout(() => setSaved(false), 2000);
+            });
+        }
+    };
+
+    const handleAddComment = () => {
+        if (!commentText.trim()) return;
+        startTransition(async () => {
+            await addComment(task.id, boardId, commentText);
+            setCommentText('');
+        });
+    };
+
+    const handleAssign = (userId: string) => {
+        startTransition(async () => { await assignTask(task.id, boardId, userId); });
+    };
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} className="max-w-5xl">
+            <div className="flex flex-col md:flex-row h-[82vh]">
+
+                {/* ── LEFT: Main content ───────────────────────────────── */}
+                <div className="flex-1 flex flex-col min-h-0 p-7 pr-6">
+
+                    {/* Breadcrumb + title */}
+                    <div className="mb-5">
+                        <div className="flex items-center gap-2 mb-2">
+                            {task.column?.title && (
+                                <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">
+                                    {task.column.title}
+                                </span>
+                            )}
+                            {task.column?.title && <span className="text-gray-300 text-xs">›</span>}
+                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${cat.color}`}>
+                                {cat.label}
+                            </span>
+                        </div>
+                        <h2 className="text-[22px] font-bold text-gray-900 leading-snug">{task.title}</h2>
+                    </div>
+
+                    {/* Description */}
+                    <div className="mb-5">
+                        <div className="flex items-center justify-between mb-1.5">
+                            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Description</h3>
+                            <span className={`text-[11px] transition-opacity duration-300 ${saved ? 'text-green-500 opacity-100' : 'opacity-0'}`}>
+                                ✓ Saved
+                            </span>
+                        </div>
+                        <textarea
+                            className="w-full h-28 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white focus:border-transparent text-sm text-gray-700 placeholder-gray-400 resize-none transition-all"
+                            placeholder="Add a description…"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            onBlur={handleDescriptionSave}
+                        />
+                    </div>
+
+                    {/* Activity */}
+                    <div className="flex-1 flex flex-col min-h-0">
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Activity</h3>
+
+                        {/* Comment list */}
+                        <div className="flex-1 overflow-y-auto space-y-3 mb-4 bg-gray-50 rounded-xl p-3">
+                            {(!task.comments || task.comments.length === 0) && (
+                                <div className="flex flex-col items-center justify-center h-full py-6 gap-1">
+                                    <span className="text-2xl">💬</span>
+                                    <p className="text-gray-400 text-sm">No activity yet. Start the conversation.</p>
+                                </div>
+                            )}
+                            {task.comments?.map((comment: CommentType) => (
+                                <div key={comment.id} className="flex gap-2.5">
+                                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-[11px] font-bold text-white shrink-0 mt-0.5">
+                                        {comment.user.name?.[0]?.toUpperCase() || 'U'}
+                                    </div>
+                                    <div className="flex-1 bg-white rounded-xl px-3 py-2 shadow-sm border border-gray-100">
+                                        <div className="flex items-baseline gap-2 mb-1">
+                                            <span className="text-xs font-semibold text-gray-900">{comment.user.name}</span>
+                                            <span className="text-[11px] text-gray-400">{formatDistanceToNow(new Date(comment.createdAt))} ago</span>
+                                        </div>
+                                        <p className="text-sm text-gray-700 leading-relaxed">{comment.text}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Comment input */}
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-[11px] font-bold text-white shrink-0">
+                                {currentUserEmail?.[0]?.toUpperCase() || 'M'}
+                            </div>
+                            <div className="flex-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+                                <input
+                                    type="text"
+                                    className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 focus:outline-none"
+                                    placeholder="Write a comment… (Enter to post)"
+                                    value={commentText}
+                                    onChange={(e) => setCommentText(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
+                                />
+                                <button
+                                    onClick={handleAddComment}
+                                    disabled={isPending || !commentText.trim()}
+                                    className="shrink-0 px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    Post
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── RIGHT: Sidebar ───────────────────────────────────── */}
+                <div className="w-full md:w-60 shrink-0 flex flex-col gap-1 bg-gray-50 border-l border-gray-100 p-5 rounded-r-2xl">
+
+                    {/* Assignee */}
+                    <div className="mb-4">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Assignee</p>
+                        {assignee ? (
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-[11px] font-bold text-white">
+                                    {assignee.user.name?.[0]?.toUpperCase() ?? 'U'}
+                                </div>
+                                <span className="text-sm font-medium text-gray-800">{assignee.user.name || assignee.user.email}</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2 mb-2 text-gray-400">
+                                <div className="w-7 h-7 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-xs">?</div>
+                                <span className="text-sm">Unassigned</span>
+                            </div>
+                        )}
+                        <select
+                            className="w-full px-2.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 cursor-pointer hover:border-blue-300 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
+                            value={task.assigneeId || ''}
+                            onChange={(e) => handleAssign(e.target.value)}
+                        >
+                            <option value="">Unassigned</option>
+                            {members.map((m: MemberType) => (
+                                <option key={m.user.id} value={m.user.id}>
+                                    {m.user.name || m.user.email}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Category (read-only badge) */}
+                    <div className="mb-4">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Category</p>
+                        <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ${cat.color}`}>
+                            {cat.label}
+                        </span>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="border-t border-gray-200 my-1" />
+
+                    {/* Task ID */}
+                    <div className="mt-auto pt-3">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Task ID</p>
+                        <code className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded font-mono">
+                            #{task.id.slice(-8).toUpperCase()}
+                        </code>
+                    </div>
+                </div>
+            </div>
+        </Modal>
+    );
+}

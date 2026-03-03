@@ -68,7 +68,9 @@ export async function createTask(
     columnId: string,
     title: string,
     status: string,
-    category: string
+    category: string,
+    description?: string,
+    assigneeId?: string
 ) {
     const role = await getUserRole(boardId);
     if (role !== BoardRole.LEADER) {
@@ -104,6 +106,8 @@ export async function createTask(
                 category: category as TaskCategory,
                 order: newOrder,
                 columnId,
+                ...(description ? { description } : {}),
+                ...(assigneeId ? { assigneeId } : {}),
             },
         });
 

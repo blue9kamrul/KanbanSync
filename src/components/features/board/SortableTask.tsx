@@ -3,12 +3,16 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { memo, useState, useTransition } from 'react';
-import type { TaskCategory, Prisma } from '../../../generated/prisma/browser';
+import type { TaskCategory } from '../../../generated/prisma/browser';
 import { deleteTask } from '@/src/actions/taskActions';
 import EditTaskModal from './EditTaskModal';
+// EditTaskModal replaced by TaskDetailsModal for unified edit flow
+import TaskDetailsModal from './TaskDetailsModal';
 import Modal from '../../ui/Modal';
+import { BoardWithColumnsAndTasks } from '../../../types/board';
 
-type TaskType = Prisma.TaskModel;
+type TaskType = BoardWithColumnsAndTasks['columns'][number]['tasks'][number];
+type MemberType = BoardWithColumnsAndTasks['members'][number];
 
 // Helper function to color-code categories
 const getCategoryColor = (category: TaskCategory) => {
@@ -20,13 +24,13 @@ const getCategoryColor = (category: TaskCategory) => {
     }
 };
 
-export default memo(function SortableTask({ task, boardId
-}: { task: TaskType; boardId: string }) {
+export default memo(function SortableTask({ task, boardId, members, currentUserEmail
+}: { task: TaskType; boardId: string; members?: MemberType[]; currentUserEmail?: string | null }) {
     console.log("Rendering Task:", task.id);
 
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
+    const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
     const [isPendingDelete, startTransition] = useTransition();
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
@@ -51,9 +55,10 @@ export default memo(function SortableTask({ task, boardId
                 style={style}
                 {...attributes}
                 {...listeners}
-                className={`group bg-white p-4 rounded-lg shadow-sm border transition-shadow cursor-grab active:cursor-grabbing
+                className={`relative group bg-white p-4 rounded-lg shadow-sm border transition-shadow cursor-grab active:cursor-grabbing
                 ${isDragging ? 'border-blue-500 shadow-lg' : 'border-gray-200 hover:shadow-md'}
             `}
+                onClick={() => setIsDetailsOpen(true)}
             >
                 <div className="flex justify-between items-start mb-2">
                     {/* The Task Category Badge */}
@@ -64,7 +69,7 @@ export default memo(function SortableTask({ task, boardId
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                             onPointerDown={(e) => e.stopPropagation()} // CRITICAL: Stops drag-and-drop
-                            onClick={() => setIsEditModalOpen(true)}
+                            onClick={(e) => { e.stopPropagation(); setIsDetailsOpen(true); }}
                             className="text-gray-500 hover:text-blue-600 hover:bg-blue-50 p-1 rounded disabled:opacity-50"
                             title="Edit"
                             aria-label="Edit task"
@@ -90,12 +95,21 @@ export default memo(function SortableTask({ task, boardId
                     </div>
                 </div>
                 <h3 className="text-sm font-medium text-gray-900">{task.title}</h3>
+                {/* Small assignee avatar (initial) */}
+                {task.assignee && (
+                    <div className="absolute bottom-2 right-2 w-5 h-5 bg-blue-600 rounded-full text-[8px] text-white flex items-center justify-center border border-white">
+                        {task.assignee.name?.[0] ?? 'U'}
+                    </div>
+                )}
+
             </div>
-            <EditTaskModal
-                isOpen={isEditModalOpen}
-                onClose={() => setIsEditModalOpen(false)}
+            <TaskDetailsModal
+                isOpen={isDetailsOpen}
+                onClose={() => setIsDetailsOpen(false)}
                 task={task}
                 boardId={boardId}
+                members={members ?? []}
+                currentUserEmail={currentUserEmail}
             />
             {/* 3. The Custom Delete Confirmation Modal */}
             <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)}>
@@ -115,7 +129,7 @@ export default memo(function SortableTask({ task, boardId
                     <button
                         onClick={confirmDelete}
                         disabled={isPendingDelete}
-                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center min-w-[100px]"
+                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center min-w-25"
                     >
                         {isPendingDelete ? 'Deleting...' : 'Delete'}
                     </button>

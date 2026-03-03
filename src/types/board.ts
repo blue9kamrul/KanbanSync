@@ -10,8 +10,18 @@ export type TaskStatus = typeof TaskStatus[keyof typeof TaskStatus];
 
 export type BoardWithColumnsAndTasks = Prisma.BoardGetPayload<{
     include: {
+        members: {
+            include: { user: true };
+        };
         columns: {
-            include: { tasks: true };
+            include: {
+                tasks: {
+                    include: {
+                        assignee: true;
+                        comments: { include: { user: true } };
+                    };
+                };
+            };
         };
     };
 }>;

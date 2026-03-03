@@ -9,15 +9,16 @@ import { useRouter } from 'next/navigation';
 import { getPusherClient } from '../../../lib/pusher';
 
 import BoardColumn from './BoardColumn';
-import { TaskStatus } from '../../../types/board';
+// import { TaskStatus } from '../../../types/board';
 
 interface KanbanBoardProps {
     initialBoard: BoardWithColumnsAndTasks;
     userRole?: string | null;
+    currentUserEmail: string;
 }
 type TaskType = BoardWithColumnsAndTasks['columns'][number]['tasks'][number];
 
-export default function KanbanBoard({ initialBoard, userRole }: KanbanBoardProps) {
+export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }: KanbanBoardProps) {
     const router = useRouter();
     // Add a new "movedTask" property to the state, which we can use to render the dragging task in the overlay
     const [activeTask, setActiveTask] = useState<TaskType | null>(null);
@@ -223,7 +224,7 @@ export default function KanbanBoard({ initialBoard, userRole }: KanbanBoardProps
             >
                 <div className="flex flex-1 gap-6 overflow-x-auto pb-4 items-start">
                     {filteredColumns.map((column) => (
-                        <BoardColumn key={column.id} column={column} boardId={initialBoard.id} userRole={userRole} />
+                        <BoardColumn key={column.id} column={column} boardId={initialBoard.id} userRole={userRole} members={initialBoard.members} currentUserEmail={currentUserEmail} />
                     ))}
                 </div>
 

@@ -3,16 +3,15 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import SortableTask from './SortableTask';
-import type { Prisma } from '../../../generated/prisma/browser';
 import { useState } from 'react';
 import NewTaskModal from './NewTaskModal';
 import { memo } from 'react';
+import { BoardWithColumnsAndTasks } from '../../../types/board';
 
-type ColumnWithTasks = Prisma.ColumnGetPayload<{
-    include: { tasks: true };
-}>;
+type ColumnWithTasks = BoardWithColumnsAndTasks['columns'][number];
+type MemberType = BoardWithColumnsAndTasks['members'][number];
 
-export default memo(function BoardColumn({ column, boardId, userRole }: { column: ColumnWithTasks; boardId?: string; userRole?: string | null }) {
+export default memo(function BoardColumn({ column, boardId, userRole, members, currentUserEmail }: { column: ColumnWithTasks; boardId?: string; userRole?: string | null; members?: MemberType[]; currentUserEmail?: string | null }) {
     console.log("Rendering Column:", column.id);
     const effectiveBoardId = boardId ?? column.boardId;
     // Make the entire column a drop target
@@ -32,7 +31,7 @@ export default memo(function BoardColumn({ column, boardId, userRole }: { column
     return (
         <div
             ref={setNodeRef}
-            className={`flex-1 min-w-[220px] max-w-[320px] rounded-xl p-4 flex flex-col gap-4 shadow-sm transition-colors
+            className={`flex-1 min-w-55 max-w-[320px] rounded-xl p-4 flex flex-col gap-4 shadow-sm transition-colors
                 ${isOverLimit ? 'bg-red-50 border-2 border-red-300' : 'bg-gray-200/80 border-2 border-transparent'}
             `}
         >
@@ -59,9 +58,9 @@ export default memo(function BoardColumn({ column, boardId, userRole }: { column
                 strategy={verticalListSortingStrategy}
             >
                 {/* min-h ensures the column always has a drop area, even when empty */}
-                <div className="flex flex-col gap-3 min-h-[150px]">
+                <div className="flex flex-col gap-3 min-h-37.5">
                     {column.tasks.map((task) => (
-                        <SortableTask key={task.id} task={task} boardId={effectiveBoardId} />
+                        <SortableTask key={task.id} task={task} boardId={effectiveBoardId} members={members} currentUserEmail={currentUserEmail} />
                     ))}
                 </div>
             </SortableContext>
@@ -84,6 +83,7 @@ export default memo(function BoardColumn({ column, boardId, userRole }: { column
                 boardId={effectiveBoardId}
                 columnId={column.id}
                 columnTitle={column.title}
+                members={members}
             />
         </div >
     );
