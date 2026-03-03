@@ -1,66 +1,70 @@
 import { auth, signOut } from '../../auth';
 import { prisma } from '../lib/db';
 import { redirect } from 'next/navigation';
-import NotificationsBell from '../components/ui/NotificationsBell';
-import CreateBoardButton from '../components/ui/CreateBoardButton';
 import BoardsGrid from '../components/ui/BoardsGrid';
+import DashboardNavbar from '../components/ui/DashboardNavbar';
 
 export default async function Dashboard() {
   const session = await auth();
 
-  // Middleware should catch this, but it's good defensive programming
   if (!session?.user?.email) redirect('/login');
 
-  // Resolve the current DB user by email (safe even after a DB reset with stale JWT)
   const dbUser = await prisma.user.findUnique({ where: { email: session.user.email } });
-  if (!dbUser) redirect('/login'); // user row missing — force fresh sign-in
+  if (!dbUser) redirect('/login');
 
-  // Fetch boards the user owns OR is a member of
   const boards = await prisma.board.findMany({
     where: {
       OR: [
         { userId: dbUser.id },
-        { members: { some: { userId: dbUser.id } } }
-      ]
+        { members: { some: { userId: dbUser.id } } },
+      ],
     },
     orderBy: { createdAt: 'desc' },
   });
 
+  const signOutAction = async () => {
+    'use server';
+    await signOut({ redirectTo: '/login' });
+  };
+
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-5xl mx-auto">
-        <header className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Your Boards</h1>
-            <p className="text-gray-500">Welcome back, {session.user.name}</p>
-          </div>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <DashboardNavbar
+        userId={dbUser.id}
+        userName={session.user.name}
+        userEmail={session.user.email}
+        userImage={session.user.image}
+        boardCount={boards.length}
+        signOutAction={signOutAction}
+      />
 
-          {/* Logout Button — uses NextAuth v5 server action */}
-          <div className="flex items-center gap-4">
-            <NotificationsBell userId={dbUser.id} />
-            <form action={async () => {
-              'use server';
-              await signOut({ redirectTo: '/login' });
-            }}>
-              <button type="submit" className="text-sm text-gray-500 hover:text-gray-900">
-                Sign out
-              </button>
-            </form>
-          </div>
-        </header>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <BoardsGrid boards={boards} />
-
-          {/* Create New Board Button + Modal */}
-          <div className="col-span-1 md:col-span-3">
-            <div className="flex justify-end">
-              <CreateBoardButton />
-            </div>
-          </div>
+      <main className="flex-1 px-6 py-10 max-w-7xl mx-auto w-full">
+        {/* Page heading */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">Your Boards</h1>
+          <p className="text-gray-500 mt-1">Welcome back, {session.user.name}</p>
         </div>
-      </div>
-    </main>
+
+        {boards.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mb-4">
+              <svg viewBox="0 0 24 24" fill="none" className="w-8 h-8 text-blue-500" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="3" width="7" height="9" rx="1.5" fill="currentColor" opacity="0.9" />
+                <rect x="14" y="3" width="7" height="5" rx="1.5" fill="currentColor" />
+                <rect x="14" y="12" width="7" height="9" rx="1.5" fill="currentColor" opacity="0.9" />
+                <rect x="3" y="16" width="7" height="5" rx="1.5" fill="currentColor" />
+              </svg>
+            </div>
+            <p className="text-lg font-semibold text-gray-700">No boards yet</p>
+            <p className="text-gray-400 mt-1 text-sm">Click &ldquo;Create Board&rdquo; in the navbar to get started.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <BoardsGrid boards={boards} />
+          </div>
+        )}
+      </main>
+    </div>
   );
 }
 
