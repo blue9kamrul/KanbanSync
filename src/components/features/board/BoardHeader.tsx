@@ -2,14 +2,16 @@
 
 import { useState } from 'react';
 import InviteMemberModal from './InviteMemberModal';
+import NotificationsBell from '../../ui/NotificationsBell';
 import type { Board } from '../../../generated/prisma/client';
 
 interface BoardHeaderProps {
     board: Board;
     userRole?: string | null;
+    userId?: string | null;
 }
 
-export default function BoardHeader({ board, userRole }: BoardHeaderProps) {
+export default function BoardHeader({ board, userRole, userId }: BoardHeaderProps) {
     const [isInviteOpen, setIsInviteOpen] = useState(false);
 
     return (
@@ -18,6 +20,8 @@ export default function BoardHeader({ board, userRole }: BoardHeaderProps) {
 
             <div className="flex items-center gap-4">
                 {/* Show avatars of current members here later */}
+
+                <NotificationsBell userId={userId ?? ''} />
 
                 {/* GUARD: Only show button to Leaders */}
                 {userRole === 'LEADER' && (

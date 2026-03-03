@@ -29,7 +29,7 @@ export default async function BoardPage({ params }: { params: Promise<{ boardId:
 
     return (
         <main className="min-h-screen bg-gray-50 p-8 flex flex-col">
-            <BoardHeader board={board} userRole={userRole} />
+            <BoardHeader board={board} userRole={userRole} userId={session?.user?.id ?? null} />
 
             <div className="flex-1 overflow-hidden">
                 {/* Pass the role into the board! */}

@@ -62,3 +62,13 @@ export type Task = Prisma.TaskModel
  * 
  */
 export type Comment = Prisma.CommentModel
+/**
+ * Model BoardInvite
+ * 
+ */
+export type BoardInvite = Prisma.BoardInviteModel
+/**
+ * Model Notification
+ * 
+ */
+export type Notification = Prisma.NotificationModel

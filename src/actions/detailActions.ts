@@ -21,9 +21,46 @@ export async function addComment(taskId: string, boardId: string, text: string) 
         });
 
         await pusherServer.trigger(`board-${boardId}`, 'board-updated', { message: 'New comment' });
+        // Detect mentions like @email@example.com or @username and notify matched users
+        const mentionRegex = /@([^\s@]+)/g;
+        const mentions = new Set<string>();
+        let mm: RegExpExecArray | null;
+        while ((mm = mentionRegex.exec(text)) !== null) {
+            mentions.add(mm[1]);
+        }
+
+        if (mentions.size > 0) {
+            const terms = Array.from(mentions);
+            // Build an OR query: match exact emails or names that contain the term
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const orClauses: any[] = [];
+            const emails: string[] = [];
+            for (const t of terms) {
+                if (t.includes('@')) {
+                    emails.push(t);
+                } else {
+                    orClauses.push({ name: { contains: t, mode: 'insensitive' } });
+                }
+            }
+
+            if (emails.length > 0) {
+                orClauses.push({ email: { in: emails } });
+            }
+
+            if (orClauses.length > 0) {
+                const users = await prisma.user.findMany({ where: { OR: orClauses } });
+                for (const u of users) {
+                    await pusherServer.trigger(`user-${u.id}`, 'notification', {
+                        type: 'mention', boardId, taskId, from: session.user.id, excerpt: text.slice(0, 200),
+                    });
+                }
+            }
+        }
+
         revalidatePath(`/board/${boardId}`);
         return { success: true, comment };
     } catch (error) {
+        console.error('Failed to add comment:', error);
         return { success: false, error: 'Failed to add comment' };
     }
 }
@@ -37,6 +74,7 @@ export async function updateTaskDescription(taskId: string, boardId: string, des
         revalidatePath(`/board/${boardId}`);
         return { success: true };
     } catch (error) {
+        console.error('Failed to update description:', error);
         return { success: false, error: 'Failed to update description' };
     }
 }
@@ -51,6 +89,7 @@ export async function assignTask(taskId: string, boardId: string, assigneeId: st
         revalidatePath(`/board/${boardId}`);
         return { success: true };
     } catch (error) {
+        console.error('Failed to assign task:', error);
         return { success: false, error: 'Failed to assign task' };
     }
 }

@@ -392,7 +392,9 @@ export const ModelName = {
   BoardMember: 'BoardMember',
   Column: 'Column',
   Task: 'Task',
-  Comment: 'Comment'
+  Comment: 'Comment',
+  BoardInvite: 'BoardInvite',
+  Notification: 'Notification'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -408,7 +410,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "account" | "session" | "verificationToken" | "board" | "boardMember" | "column" | "task" | "comment"
+    modelProps: "user" | "account" | "session" | "verificationToken" | "board" | "boardMember" | "column" | "task" | "comment" | "boardInvite" | "notification"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1078,6 +1080,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    BoardInvite: {
+      payload: Prisma.$BoardInvitePayload<ExtArgs>
+      fields: Prisma.BoardInviteFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BoardInviteFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BoardInvitePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BoardInviteFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BoardInvitePayload>
+        }
+        findFirst: {
+          args: Prisma.BoardInviteFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BoardInvitePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BoardInviteFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BoardInvitePayload>
+        }
+        findMany: {
+          args: Prisma.BoardInviteFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BoardInvitePayload>[]
+        }
+        create: {
+          args: Prisma.BoardInviteCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BoardInvitePayload>
+        }
+        createMany: {
+          args: Prisma.BoardInviteCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BoardInviteCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BoardInvitePayload>[]
+        }
+        delete: {
+          args: Prisma.BoardInviteDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BoardInvitePayload>
+        }
+        update: {
+          args: Prisma.BoardInviteUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BoardInvitePayload>
+        }
+        deleteMany: {
+          args: Prisma.BoardInviteDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BoardInviteUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BoardInviteUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BoardInvitePayload>[]
+        }
+        upsert: {
+          args: Prisma.BoardInviteUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BoardInvitePayload>
+        }
+        aggregate: {
+          args: Prisma.BoardInviteAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBoardInvite>
+        }
+        groupBy: {
+          args: Prisma.BoardInviteGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BoardInviteGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BoardInviteCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BoardInviteCountAggregateOutputType> | number
+        }
+      }
+    }
+    Notification: {
+      payload: Prisma.$NotificationPayload<ExtArgs>
+      fields: Prisma.NotificationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.NotificationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.NotificationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload>
+        }
+        findFirst: {
+          args: Prisma.NotificationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.NotificationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload>
+        }
+        findMany: {
+          args: Prisma.NotificationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload>[]
+        }
+        create: {
+          args: Prisma.NotificationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload>
+        }
+        createMany: {
+          args: Prisma.NotificationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.NotificationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload>[]
+        }
+        delete: {
+          args: Prisma.NotificationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload>
+        }
+        update: {
+          args: Prisma.NotificationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload>
+        }
+        deleteMany: {
+          args: Prisma.NotificationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.NotificationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.NotificationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload>[]
+        }
+        upsert: {
+          args: Prisma.NotificationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NotificationPayload>
+        }
+        aggregate: {
+          args: Prisma.NotificationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateNotification>
+        }
+        groupBy: {
+          args: Prisma.NotificationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.NotificationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.NotificationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.NotificationCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1228,12 +1378,44 @@ export const CommentScalarFieldEnum = {
 export type CommentScalarFieldEnum = (typeof CommentScalarFieldEnum)[keyof typeof CommentScalarFieldEnum]
 
 
+export const BoardInviteScalarFieldEnum = {
+  id: 'id',
+  boardId: 'boardId',
+  inviterId: 'inviterId',
+  invitedEmail: 'invitedEmail',
+  userId: 'userId',
+  role: 'role',
+  createdAt: 'createdAt'
+} as const
+
+export type BoardInviteScalarFieldEnum = (typeof BoardInviteScalarFieldEnum)[keyof typeof BoardInviteScalarFieldEnum]
+
+
+export const NotificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  type: 'type',
+  data: 'data',
+  read: 'read',
+  createdAt: 'createdAt'
+} as const
+
+export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {
@@ -1250,6 +1432,15 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 
 
 
@@ -1325,6 +1516,27 @@ export type EnumTaskCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$Pri
  * Reference to a field of type 'TaskCategory[]'
  */
 export type ListEnumTaskCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TaskCategory[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
+ * Reference to a field of type 'Boolean'
+ */
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -1445,6 +1657,8 @@ export type GlobalOmitConfig = {
   column?: Prisma.ColumnOmit
   task?: Prisma.TaskOmit
   comment?: Prisma.CommentOmit
+  boardInvite?: Prisma.BoardInviteOmit
+  notification?: Prisma.NotificationOmit
 }
 
 /* Types for Logging */

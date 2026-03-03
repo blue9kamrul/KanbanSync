@@ -17,9 +17,15 @@ type MemberType = BoardWithColumnsAndTasks['members'][number];
 // Helper function to color-code categories
 const getCategoryColor = (category: TaskCategory) => {
     switch (category) {
-        case 'BUG': return 'bg-red-100 text-red-700 border-red-200';
         case 'NEW_FEATURE': return 'bg-blue-100 text-blue-700 border-blue-200';
+        case 'EPIC': return 'bg-purple-100 text-purple-700 border-purple-200';
+        case 'STORY': return 'bg-indigo-100 text-indigo-700 border-indigo-200';
         case 'TASK': return 'bg-gray-100 text-gray-700 border-gray-200';
+        case 'SUB_TASK': return 'bg-slate-100 text-slate-600 border-slate-200';
+        case 'BUG': return 'bg-red-100 text-red-700 border-red-200';
+        case 'ENHANCEMENT': return 'bg-amber-100 text-amber-700 border-amber-200';
+        case 'PATCH': return 'bg-orange-100 text-orange-700 border-orange-200';
+        case 'HOTFIX': return 'bg-rose-100 text-rose-700 border-rose-200';
         default: return 'bg-gray-100 text-gray-700 border-gray-200';
     }
 };

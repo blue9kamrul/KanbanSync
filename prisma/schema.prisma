@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client"
-  output   = "../src/generated/prisma" 
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -15,13 +15,16 @@ model User {
   image         String?
   accounts      Account[]
   sessions      Session[]
-  boards        Board[]   // Your existing relation
+  boards        Board[] // Your existing relation
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   boardMemberships BoardMember[]
-  assignedTasks    Task[]       @relation("AssignedTasks")
+  assignedTasks    Task[]         @relation("AssignedTasks")
   comments         Comment[]
+  sentInvites      BoardInvite[]  @relation("InviterToInvite")
+  receivedInvites  BoardInvite[]  @relation("InvitedToInvite")
+  notifications    Notification[]
 
   @@map("users")
 }
@@ -68,28 +71,29 @@ model VerificationToken {
 // ... keep your existing Board, Column, and Task models below ...
 
 model Board {
-  id        String   @id @default(cuid())
+  id        String        @id @default(cuid())
   title     String
-  userId    String 
+  userId    String
   // The foreign key column. Stores the id of the User who owns this board. This is the actual column in the database.
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   // Defines the relation to the User model. fields: [userId] — the local foreign key column. references: [id] — the column in User it points to. onDelete: Cascade — if the User is deleted, all their Boards are automatically deleted too. Without this, deleting a user with boards would throw a foreign key violation error.
   columns   Column[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
   members   BoardMember[] // NEW: Team members
+  invites   BoardInvite[]
 
   @@map("boards")
 }
 
 model BoardMember {
-  id        String    @id @default(cuid())
-  boardId   String
-  userId    String
-  role      BoardRole @default(MEMBER)
-  
-  board     Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id      String    @id @default(cuid())
+  boardId String
+  userId  String
+  role    BoardRole @default(MEMBER)
+
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([boardId, userId]) // A user can only be in a board once
   @@map("board_members")
@@ -98,8 +102,8 @@ model BoardMember {
 model Column {
   id        String   @id @default(cuid())
   title     String
-  order     Int      
-  wipLimit  Int?     // Optional WIP limit (e.g., max 3 items)
+  order     Int
+  wipLimit  Int? // Optional WIP limit (e.g., max 3 items)
   boardId   String
   board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
   tasks     Task[]
@@ -109,44 +113,42 @@ model Column {
   @@map("columns")
 }
 
-
 model Task {
   id          String       @id @default(cuid())
   title       String
-  description String?     @db.Text
-  status      String   
+  description String?      @db.Text
+  status      String
   category    TaskCategory @default(TASK) // NEW: Enforce task types
-  order       Int   
+  order       Int
 
   // NEW: Assignment
-  assigneeId  String?
-  assignee    User?        @relation("AssignedTasks", fields: [assigneeId], references: [id], onDelete: SetNull)
+  assigneeId String?
+  assignee   User?   @relation("AssignedTasks", fields: [assigneeId], references: [id], onDelete: SetNull)
 
-  columnId    String
-  column      Column       @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  columnId String
+  column   Column @relation(fields: [columnId], references: [id], onDelete: Cascade)
 
-  comments    Comment[]
+  comments Comment[]
 
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("tasks")
 }
 
 model Comment {
-  id        String   @id @default(cuid())
-  text      String   @db.Text
-  taskId    String
-  userId    String
-  
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id     String @id @default(cuid())
+  text   String @db.Text
+  taskId String
+  userId String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
 
   @@map("comments")
 }
-
 
 enum TaskStatus {
   TODO
@@ -172,6 +174,36 @@ enum BoardRole {
   MEMBER
 }
 
+model BoardInvite {
+  id            String    @id @default(cuid())
+  boardId       String
+  inviterId     String
+  invitedEmail  String
+  userId        String?
+  role          BoardRole @default(MEMBER)
+  createdAt     DateTime  @default(now())
+
+  board       Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  inviter     User  @relation("InviterToInvite", fields: [inviterId], references: [id], onDelete: Cascade)
+  user User? @relation("InvitedToInvite", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, invitedEmail])
+  @@map("board_invites")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  data      Json
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
 // TODO:
 // 5. User has no password / auth field
 // If you're doing credentials-based auth, there's no password or hashedPassword field. If using NextAuth/OAuth, there are no Session or Account models. This depends on your auth strategy, but it's worth noting.
@@ -180,5 +212,3 @@ enum BoardRole {
 // Foreign key columns like userId, boardId, columnId benefit from database indexes for fast lookups:
 
 // Without indexes, queries like "get all boards for a user" do a full table scan. Adding @@index([userId]) on Board and similar on Column and Task improves performance.
-
- 

@@ -3,6 +3,7 @@ import { prisma } from '../lib/db';
 import { createBoard } from '../actions/boardActions';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import NotificationsBell from '../components/ui/NotificationsBell';
 
 export default async function Dashboard() {
   const session = await auth();
@@ -35,14 +36,17 @@ export default async function Dashboard() {
           </div>
 
           {/* Logout Button — uses NextAuth v5 server action */}
-          <form action={async () => {
-            'use server';
-            await signOut({ redirectTo: '/login' });
-          }}>
-            <button type="submit" className="text-sm text-gray-500 hover:text-gray-900">
-              Sign out
-            </button>
-          </form>
+          <div className="flex items-center gap-4">
+            <NotificationsBell userId={dbUser.id} />
+            <form action={async () => {
+              'use server';
+              await signOut({ redirectTo: '/login' });
+            }}>
+              <button type="submit" className="text-sm text-gray-500 hover:text-gray-900">
+                Sign out
+              </button>
+            </form>
+          </div>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

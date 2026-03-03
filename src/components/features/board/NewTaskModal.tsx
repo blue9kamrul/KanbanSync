@@ -18,9 +18,15 @@ interface NewTaskModalProps {
 }
 
 const categoryConfig: Record<string, { label: string; color: string }> = {
-    BUG: { label: '🐛 Bug', color: 'bg-red-100 text-red-700 ring-1 ring-red-200' },
-    NEW_FEATURE: { label: '✨ Feature', color: 'bg-blue-100 text-blue-700 ring-1 ring-blue-200' },
-    TASK: { label: '🧹 Chore', color: 'bg-gray-100 text-gray-600 ring-1 ring-gray-200' },
+    NEW_FEATURE:  { label: 'Feature',     color: 'bg-blue-100 text-blue-700 ring-1 ring-blue-200' },
+    EPIC:         { label: 'Epic',        color: 'bg-purple-100 text-purple-700 ring-1 ring-purple-200' },
+    STORY:        { label: 'Story',       color: 'bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200' },
+    TASK:         { label: 'Task',        color: 'bg-gray-100 text-gray-600 ring-1 ring-gray-200' },
+    SUB_TASK:     { label: 'Sub-task',    color: 'bg-slate-100 text-slate-600 ring-1 ring-slate-200' },
+    BUG:          { label: 'Bug',         color: 'bg-red-100 text-red-700 ring-1 ring-red-200' },
+    ENHANCEMENT:  { label: 'Enhancement', color: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200' },
+    PATCH:        { label: 'Patch',       color: 'bg-orange-100 text-orange-700 ring-1 ring-orange-200' },
+    HOTFIX:       { label: 'Hotfix',      color: 'bg-rose-100 text-rose-700 ring-1 ring-rose-200' },
 };
 
 export default function NewTaskModal({ isOpen, onClose, boardId, columnId, columnTitle, members = [] }: NewTaskModalProps) {
@@ -143,9 +149,15 @@ export default function NewTaskModal({ isOpen, onClose, boardId, columnId, colum
                             onChange={(e) => setCategory(e.target.value as TaskCategory)}
                             className="w-full px-2.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 cursor-pointer hover:border-blue-300 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
                         >
-                            <option value={TaskCategory.NEW_FEATURE}>✨ Feature</option>
-                            <option value={TaskCategory.BUG}>🐛 Bug</option>
-                            <option value={TaskCategory.TASK}>🧹 Chore</option>
+                            <option value={TaskCategory.NEW_FEATURE}>Feature</option>
+                            <option value={TaskCategory.EPIC}>Epic</option>
+                            <option value={TaskCategory.STORY}>Story</option>
+                            <option value={TaskCategory.TASK}>Task</option>
+                            <option value={TaskCategory.SUB_TASK}>Sub-task</option>
+                            <option value={TaskCategory.BUG}>Bug</option>
+                            <option value={TaskCategory.ENHANCEMENT}>Enhancement</option>
+                            <option value={TaskCategory.PATCH}>Patch</option>
+                            <option value={TaskCategory.HOTFIX}>Hotfix</option>
                         </select>
                     </div>
 
@@ -154,7 +166,7 @@ export default function NewTaskModal({ isOpen, onClose, boardId, columnId, colum
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Assignee</p>
                         {selectedMember ? (
                             <div className="flex items-center gap-2 mb-2">
-                                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-[10px] font-bold text-white">
+                                <div className="w-6 h-6 rounded-full bg-linear-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-[10px] font-bold text-white">
                                     {selectedMember.user.name?.[0]?.toUpperCase() ?? 'U'}
                                 </div>
                                 <span className="text-xs font-medium text-gray-700 truncate">{selectedMember.user.name || selectedMember.user.email}</span>

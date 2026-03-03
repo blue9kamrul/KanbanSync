@@ -23,9 +23,15 @@ interface TaskDetailsModalProps {
 }
 
 const categoryConfig: Record<string, { label: string; color: string }> = {
-    BUG: { label: '🐛 Bug', color: 'bg-red-100 text-red-700 ring-1 ring-red-200' },
-    NEW_FEATURE: { label: '✨ Feature', color: 'bg-blue-100 text-blue-700 ring-1 ring-blue-200' },
-    TASK: { label: '🧹 Chore', color: 'bg-gray-100 text-gray-600 ring-1 ring-gray-200' },
+    NEW_FEATURE: { label: 'Feature', color: 'bg-blue-100 text-blue-700 ring-1 ring-blue-200' },
+    EPIC: { label: 'Epic', color: 'bg-purple-100 text-purple-700 ring-1 ring-purple-200' },
+    STORY: { label: 'Story', color: 'bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200' },
+    TASK: { label: 'Task', color: 'bg-gray-100 text-gray-600 ring-1 ring-gray-200' },
+    SUB_TASK: { label: 'Sub-task', color: 'bg-slate-100 text-slate-600 ring-1 ring-slate-200' },
+    BUG: { label: 'Bug', color: 'bg-red-100 text-red-700 ring-1 ring-red-200' },
+    ENHANCEMENT: { label: 'Enhancement', color: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200' },
+    PATCH: { label: 'Patch', color: 'bg-orange-100 text-orange-700 ring-1 ring-orange-200' },
+    HOTFIX: { label: 'Hotfix', color: 'bg-rose-100 text-rose-700 ring-1 ring-rose-200' },
 };
 
 export default function TaskDetailsModal({ isOpen, onClose, task, boardId, members, currentUserEmail }: TaskDetailsModalProps) {
@@ -33,6 +39,38 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
     const [saved, setSaved] = useState(false);
     const [commentText, setCommentText] = useState('');
     const [isPending, startTransition] = useTransition();
+    const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+
+    // Detect @word at the end of the current comment text
+    const handleCommentChange = (val: string) => {
+        setCommentText(val);
+        const match = val.match(/@(\S*)$/);
+        setMentionQuery(match ? match[1] : null);
+    };
+
+    // Filter members by name or email
+    const mentionSuggestions = mentionQuery !== null
+        ? members.filter(m =>
+            m.user.email?.toLowerCase().includes(mentionQuery.toLowerCase()) ||
+            m.user.name?.toLowerCase().includes(mentionQuery.toLowerCase())
+        )
+        : [];
+
+    const insertMention = (email: string) => {
+        const newText = commentText.replace(/@(\S*)$/, `@${email} `);
+        setCommentText(newText);
+        setMentionQuery(null);
+    };
+
+    // Render comment text with highlighted @mentions
+    const renderCommentText = (text: string) => {
+        const parts = text.split(/(@\S+)/g);
+        return parts.map((part, i) =>
+            part.startsWith('@') && part.length > 1
+                ? <span key={i} className="inline-flex items-center text-blue-600 font-semibold bg-blue-50 rounded px-1 text-[12px]">{part}</span>
+                : <span key={i}>{part}</span>
+        );
+    };
 
     const cat = categoryConfig[task.category] ?? { label: task.category, color: 'bg-gray-100 text-gray-600' };
     const assignee = members.find(m => m.user.id === task.assigneeId);
@@ -95,8 +133,8 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                         </div>
                         <textarea
                             className={`w-full h-28 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 resize-none transition-all ${isLeader
-                                    ? 'focus:ring-2 focus:ring-blue-500 focus:bg-white focus:border-transparent cursor-text'
-                                    : 'opacity-60 cursor-not-allowed'
+                                ? 'focus:ring-2 focus:ring-blue-500 focus:bg-white focus:border-transparent cursor-text'
+                                : 'opacity-60 cursor-not-allowed'
                                 }`}
                             placeholder={isLeader ? 'Add a description…' : 'Only Leaders can edit the description.'}
                             value={description}
@@ -128,14 +166,37 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                                             <span className="text-xs font-semibold text-gray-900">{comment.user.name}</span>
                                             <span className="text-[11px] text-gray-400">{formatDistanceToNow(new Date(comment.createdAt))} ago</span>
                                         </div>
-                                        <p className="text-sm text-gray-700 leading-relaxed">{comment.text}</p>
+                                        <p className="text-sm text-gray-700 leading-relaxed">{renderCommentText(comment.text)}</p>
                                     </div>
                                 </div>
                             ))}
                         </div>
 
                         {/* Comment input */}
-                        <div className="flex items-center gap-2.5">
+                        <div className="relative flex items-center gap-2.5">
+                            {/* @mention dropdown */}
+                            {mentionQuery !== null && mentionSuggestions.length > 0 && (
+                                <div className="absolute bottom-full mb-1.5 left-9 right-0 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                                    <div className="px-3 py-1.5 border-b border-gray-100">
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Mention a member</span>
+                                    </div>
+                                    {mentionSuggestions.map(m => (
+                                        <button
+                                            key={m.user.id}
+                                            onMouseDown={(e) => { e.preventDefault(); insertMention(m.user.email!); }}
+                                            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-blue-50 transition-colors text-left"
+                                        >
+                                            <div className="w-6 h-6 rounded-full bg-linear-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-[10px] font-bold text-white shrink-0">
+                                                {m.user.name?.[0]?.toUpperCase() || 'U'}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-semibold text-gray-800 leading-tight truncate">{m.user.name}</p>
+                                                <p className="text-[11px] text-gray-400 truncate">{m.user.email}</p>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                             <div className="w-7 h-7 rounded-full bg-linear-to-br from-violet-400 to-purple-500 flex items-center justify-center text-[11px] font-bold text-white shrink-0">
                                 {currentUserEmail?.[0]?.toUpperCase() || 'M'}
                             </div>
@@ -143,10 +204,13 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                                 <input
                                     type="text"
                                     className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 focus:outline-none"
-                                    placeholder="Write a comment… (Enter to post)"
+                                    placeholder="Write a comment… type @ to mention"
                                     value={commentText}
-                                    onChange={(e) => setCommentText(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
+                                    onChange={(e) => handleCommentChange(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Escape') { setMentionQuery(null); return; }
+                                        if (e.key === 'Enter' && mentionQuery === null) handleAddComment();
+                                    }}
                                 />
                                 <button
                                     onClick={handleAddComment}
@@ -219,4 +283,4 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
             </div>
         </Modal>
     );
-}
+}   
