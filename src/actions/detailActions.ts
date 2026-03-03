@@ -21,37 +21,47 @@ export async function addComment(taskId: string, boardId: string, text: string) 
         });
 
         await pusherServer.trigger(`board-${boardId}`, 'board-updated', { message: 'New comment' });
-        // Detect mentions like @email@example.com or @username and notify matched users
-        const mentionRegex = /@([^\s@]+)/g;
+
+        // Detect mentions: @alice@example.com or @username
+        // Use /@(\S+)/g so the entire token including the inner @ is captured
+        const mentionRegex = /@(\S+)/g;
         const mentions = new Set<string>();
         let mm: RegExpExecArray | null;
         while ((mm = mentionRegex.exec(text)) !== null) {
-            mentions.add(mm[1]);
+            mentions.add(mm[1].replace(/[.,!?;]+$/, '')); // strip trailing punctuation
         }
 
         if (mentions.size > 0) {
             const terms = Array.from(mentions);
-            // Build an OR query: match exact emails or names that contain the term
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const orClauses: any[] = [];
             const emails: string[] = [];
             for (const t of terms) {
                 if (t.includes('@')) {
-                    emails.push(t);
+                    emails.push(t);           // full email like alice@example.com
                 } else {
                     orClauses.push({ name: { contains: t, mode: 'insensitive' } });
                 }
             }
-
-            if (emails.length > 0) {
-                orClauses.push({ email: { in: emails } });
-            }
+            if (emails.length > 0) orClauses.push({ email: { in: emails } });
 
             if (orClauses.length > 0) {
-                const users = await prisma.user.findMany({ where: { OR: orClauses } });
+                const [users, board, author] = await Promise.all([
+                    prisma.user.findMany({ where: { OR: orClauses } }),
+                    prisma.board.findUnique({ where: { id: boardId } }),
+                    prisma.user.findUnique({ where: { id: session.user.id } }),
+                ]);
+
                 for (const u of users) {
+                    if (u.id === session.user.id) continue; // don't notify yourself
                     await pusherServer.trigger(`user-${u.id}`, 'notification', {
-                        type: 'mention', boardId, taskId, from: session.user.id, excerpt: text.slice(0, 200),
+                        type: 'mention',
+                        boardId,
+                        taskId,
+                        from: session.user.id,
+                        fromName: author?.name ?? null,
+                        boardTitle: board?.title ?? null,
+                        excerpt: text.slice(0, 200),
                     });
                 }
             }

@@ -76,9 +76,16 @@ export async function inviteMember(boardId: string, email: string, role: BoardRo
 
             // Fallback: directly add as member (legacy behavior)
             await prisma.boardMember.create({ data: { boardId, userId: userToInvite.id, role } });
-            // Notify the user they were added
+            // Notify the user they were added. Include inviter name and board title for clarity.
+            const board = await prisma.board.findUnique({ where: { id: boardId } });
+            const inviter = inviterId ? await prisma.user.findUnique({ where: { id: inviterId } }) : null;
             await pusherServer.trigger(`user-${userToInvite.id}`, 'notification', {
-                type: 'added-to-board', boardId, from: inviterId, role,
+                type: 'added-to-board',
+                boardId,
+                boardTitle: board?.title ?? null,
+                inviterName: inviter?.name ?? null,
+                from: inviterId,
+                role,
             });
 
             revalidatePath(`/board/${boardId}`);
