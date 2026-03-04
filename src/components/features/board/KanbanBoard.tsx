@@ -10,7 +10,22 @@ import { getPusherClient } from '../../../lib/pusher';
 
 import BoardColumn from './BoardColumn';
 import MetricsModal from './MetricsModal';
+import FilterPanel, { DEFAULT_FILTERS, countActiveFilters, FilterState, TASK_CATEGORIES } from './FilterPanel';
 // import { TaskStatus } from '../../../types/board';
+
+// Small chip for active filter display
+function Chip({ label, onRemove }: { label: string; onRemove: () => void }) {
+    return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-medium">
+            {label}
+            <button onClick={onRemove} className="ml-0.5 text-blue-400 hover:text-blue-700 transition-colors" aria-label="Remove filter">
+                <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+            </button>
+        </span>
+    );
+}
 
 interface KanbanBoardProps {
     initialBoard: BoardWithColumnsAndTasks;
@@ -25,6 +40,10 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
     const [activeTask, setActiveTask] = useState<TaskType | null>(null);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
     const [isMetricsOpen, setIsMetricsOpen] = useState(false);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+    // Stable "now" timestamp for age-filter comparisons (refreshed each time the filter panel opens)
+    const [filterNow, setFilterNow] = useState(() => Date.now());
 
     // Auto-dismiss toast after 4 seconds
     useEffect(() => {
@@ -125,19 +144,86 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
         startTransition(() => setSearchQuery(''));
     };
 
-    // Memoize the filter so it doesn't recalculate during 60fps dragging
+    // Memoize the filter + sort so it doesn't recalculate during 60fps dragging
     const filteredColumns = useMemo(() => {
-        if (!searchQuery.trim()) return optimisticColumns;
-        return optimisticColumns.map(column => ({
-            ...column,
-            tasks: column.tasks.filter(task =>
-                task.title.toLowerCase().includes(searchQuery.toLowerCase())
-            )
-        }));
-    }, [optimisticColumns, searchQuery]);
+        const now = filterNow;
+        const hasSearch = searchQuery.trim().length > 0;
+        const hasAssignee = filters.assignees.length > 0;
+        const hasCat = filters.categories.length > 0;
+        const hasDateFrom = filters.dateFrom !== '';
+        const hasDateTo = filters.dateTo !== '';
+        const hasAge = filters.ageFilter !== 'all';
+        const hasComment = filters.commentFilter !== 'all';
+        const hasSort = filters.sortBy !== 'default';
 
-    // Determine if dragging should be allowed
-    const isSearchActive = searchQuery.trim().length > 0;
+        return optimisticColumns.map(column => {
+            let tasks = [...column.tasks];
+
+            // ── Search ─────────────────────────────────────────────
+            if (hasSearch) {
+                const q = searchQuery.toLowerCase();
+                tasks = tasks.filter(t => t.title.toLowerCase().includes(q));
+            }
+
+            // ── Assignee ───────────────────────────────────────────
+            if (hasAssignee) {
+                tasks = tasks.filter(t => {
+                    if (filters.assignees.includes('unassigned') && t.assigneeId === null) return true;
+                    if (t.assigneeId && filters.assignees.includes(t.assigneeId)) return true;
+                    return false;
+                });
+            }
+
+            // ── Category ───────────────────────────────────────────
+            if (hasCat) {
+                tasks = tasks.filter(t => filters.categories.includes(t.category));
+            }
+
+            // ── Created date range ─────────────────────────────────
+            if (hasDateFrom) {
+                const from = new Date(filters.dateFrom).getTime();
+                tasks = tasks.filter(t => new Date(t.createdAt).getTime() >= from);
+            }
+            if (hasDateTo) {
+                const to = new Date(filters.dateTo).getTime() + 86_400_000; // inclusive
+                tasks = tasks.filter(t => new Date(t.createdAt).getTime() <= to);
+            }
+
+            // ── Task age (days since createdAt) ────────────────────
+            if (hasAge) {
+                tasks = tasks.filter(t => {
+                    const ageDays = (now - new Date(t.createdAt).getTime()) / 86_400_000;
+                    if (filters.ageFilter === 'fresh') return ageDays < 3;
+                    if (filters.ageFilter === 'aging') return ageDays >= 3 && ageDays <= 7;
+                    if (filters.ageFilter === 'stale') return ageDays > 7;
+                    return true;
+                });
+            }
+
+            // ── Comments ───────────────────────────────────────────
+            if (hasComment) {
+                if (filters.commentFilter === 'with') tasks = tasks.filter(t => t.comments.length > 0);
+                if (filters.commentFilter === 'without') tasks = tasks.filter(t => t.comments.length === 0);
+            }
+
+            // ── Sort ───────────────────────────────────────────────
+            if (hasSort) {
+                tasks = [...tasks].sort((a, b) => {
+                    switch (filters.sortBy) {
+                        case 'newest': return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                        case 'oldest': return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+                        case 'longest': return new Date(a.startedAt ?? a.createdAt).getTime() - new Date(b.startedAt ?? b.createdAt).getTime();
+                        case 'shortest': return new Date(b.startedAt ?? b.createdAt).getTime() - new Date(a.startedAt ?? a.createdAt).getTime();
+                        case 'az': return a.title.localeCompare(b.title);
+                        case 'za': return b.title.localeCompare(a.title);
+                        default: return 0;
+                    }
+                });
+            }
+
+            return { ...column, tasks };
+        });
+    }, [optimisticColumns, searchQuery, filters, filterNow]);
 
     // Handle Drag Start
     const handleDragStart = (event: DragStartEvent) => {
@@ -154,27 +240,63 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
         }
     };
 
-    // The Drag End Handler
+    // The Drag End Handler — smart filtered drag algorithm
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
         if (!over || active.id === over.id) return;
 
         const taskId = active.id as string;
         const newColumnId = over.data.current?.sortable?.containerId || over.id as string;
-        const newOrder = over.data.current?.sortable?.index ?? 0;
 
-        // Instantly update UI for that buttery smooth feel
+        // VISUAL INDEX: where it looks like the user dropped it (could be a subset)
+        const visualNewOrder = over.data.current?.sortable?.index ?? 0;
+
+        // --- SMART ALGORITHM: translate visual index → real database index ---
+
+        // 1. Get the destination column from the FILTERED view (what the user sees)
+        const visualColumn = filteredColumns.find(c => c.id === newColumnId);
+
+        // 2. Get the destination column from the REAL full list (the database truth)
+        const realColumn = optimisticColumns.find(c => c.id === newColumnId);
+
+        if (!visualColumn || !realColumn) return;
+
+        let realNewOrder: number;
+
+        // 3. Find the "neighbor" task we are dropping in front of
+        const neighborTask = visualColumn.tasks[visualNewOrder];
+
+        if (neighborTask) {
+            // CASE A: Dropped in front of a specific visible task.
+            // Find that neighbor's TRUE index in the real (unfiltered) list.
+            const neighborRealIndex = realColumn.tasks.findIndex(t => t.id === neighborTask.id);
+            realNewOrder = neighborRealIndex !== -1 ? neighborRealIndex : 0;
+        } else {
+            // CASE B: Dropped at the very bottom (no task at that visual index).
+            // Append to the end of the real list.
+            realNewOrder = realColumn.tasks.length;
+
+            // Edge case: moving within the same column — we are removing ourselves first,
+            // so the final length is one less.
+            const sourceColId = optimisticColumns.find(c => c.tasks.some(t => t.id === taskId))?.id;
+            if (sourceColId === newColumnId) {
+                realNewOrder = Math.max(0, realColumn.tasks.length - 1);
+            }
+        }
+
+        // --- END ALGORITHM ---
+
+        // Instantly update the UI with the REAL calculated order
         startTransition(() => {
-            addOptimisticUpdate({ taskId, newColumnId, newOrder });
+            addOptimisticUpdate({ taskId, newColumnId, newOrder: realNewOrder });
         });
 
-        // Fire the server action (Notice: only 4 arguments now!)
-        const result = await moveTask(taskId, newColumnId, newOrder, initialBoard.id);
+        // Pass the REAL calculated order to the server
+        const result = await moveTask(taskId, newColumnId, realNewOrder, initialBoard.id);
 
         // If the server rejected it (e.g., a MEMBER dragged to Done)
         if (!result?.success) {
             setToastMessage(result?.error ?? 'Move not allowed.');
-            // Revert the Optimistic UI by triggering a hard refresh from the server
             router.refresh();
         }
     };
@@ -189,19 +311,23 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
             {/* Toast notification */}
             {toastMessage && (
                 <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 bg-gray-900 text-white text-sm font-medium rounded-xl shadow-2xl">
-                    <span className="text-lg">🚫</span>
+                    <svg className="w-5 h-5 shrink-0 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
                     <span>{toastMessage}</span>
                     <button
                         onClick={() => setToastMessage(null)}
-                        className="ml-2 text-gray-400 hover:text-white transition-colors text-base leading-none"
+                        className="ml-2 text-gray-400 hover:text-white transition-colors"
                         aria-label="Dismiss"
                     >
-                        ✕
+                        <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
                     </button>
                 </div>
             )}
-            {/* Toolbar: search + metrics button */}
-            <div className="mb-6 flex items-center gap-3">
+            {/* Toolbar: search + filter + metrics */}
+            <div className="mb-3 flex items-center gap-3">
                 <div className="relative w-80">
                     {/* Search Icon */}
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -238,25 +364,103 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
                     )}
                 </div>
 
+                {/* Filter Button */}
+                <div className="relative">
+                    <button
+                        onClick={() => {
+                            setFilterNow(Date.now()); // capture current time so age filters are accurate
+                            setIsFilterOpen(o => !o);
+                        }}
+                        className={`relative flex items-center gap-2 px-4 py-2 rounded-lg border shadow-sm transition-all text-sm font-medium whitespace-nowrap ${countActiveFilters(filters) > 0
+                            ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
+                            }`}
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
+                        </svg>
+                        Filters
+                        {countActiveFilters(filters) > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-white text-blue-600 border border-blue-600 text-[10px] font-bold flex items-center justify-center leading-none">
+                                {countActiveFilters(filters)}
+                            </span>
+                        )}
+                    </button>
+
+                    <FilterPanel
+                        isOpen={isFilterOpen}
+                        onClose={() => setIsFilterOpen(false)}
+                        filters={filters}
+                        onChange={setFilters}
+                        members={initialBoard.members}
+                    />
+                </div>
+
                 {/* Board Metrics Button */}
                 <button
                     onClick={() => setIsMetricsOpen(true)}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-300 shadow-sm hover:bg-gray-50 hover:border-gray-400 transition-all text-sm font-medium text-gray-700 whitespace-nowrap"
                 >
-                    <span className="text-base">📊</span>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
                     Board Metrics
                 </button>
             </div>
 
+            {/* Active filter chips */}
+            {countActiveFilters(filters) > 0 && (
+                <div className="mb-4 flex flex-wrap items-center gap-2">
+                    <span className="text-xs text-gray-400 font-medium">Active:</span>
+
+                    {filters.sortBy !== 'default' && (
+                        <Chip label={`Sort: ${{ default: 'Default', newest: 'Newest', oldest: 'Oldest', longest: 'Longest', shortest: 'Shortest', az: 'A→Z', za: 'Z→A' }[filters.sortBy]}`}
+                            onRemove={() => setFilters(f => ({ ...f, sortBy: 'default' }))} />
+                    )}
+
+                    {filters.assignees.map(id => {
+                        const member = initialBoard.members.find(m => m.user.id === id);
+                        const label = id === 'unassigned' ? 'Unassigned' : (member?.user.name ?? member?.user.email ?? id);
+                        return <Chip key={id} label={`Assignee: ${label}`} onRemove={() => setFilters(f => ({ ...f, assignees: f.assignees.filter(a => a !== id) }))} />;
+                    })}
+
+                    {filters.categories.map(cat => {
+                        const meta = TASK_CATEGORIES.find(c => c.value === cat);
+                        return <Chip key={cat} label={`Category: ${meta?.label ?? cat}`} onRemove={() => setFilters(f => ({ ...f, categories: f.categories.filter(c => c !== cat) }))} />;
+                    })}
+
+                    {(filters.dateFrom || filters.dateTo) && (
+                        <Chip label={`Date: ${filters.dateFrom || '…'} → ${filters.dateTo || '…'}`}
+                            onRemove={() => setFilters(f => ({ ...f, dateFrom: '', dateTo: '' }))} />
+                    )}
+
+                    {filters.ageFilter !== 'all' && (
+                        <Chip label={`Age: ${{ fresh: 'Fresh', aging: 'Aging', stale: 'Stale' }[filters.ageFilter]}`}
+                            onRemove={() => setFilters(f => ({ ...f, ageFilter: 'all' }))} />
+                    )}
+
+                    {filters.commentFilter !== 'all' && (
+                        <Chip label={`Comments: ${{ with: 'Has comments', without: 'No comments' }[filters.commentFilter]}`}
+                            onRemove={() => setFilters(f => ({ ...f, commentFilter: 'all' }))} />
+                    )}
+
+                    <button
+                        onClick={() => setFilters(DEFAULT_FILTERS)}
+                        className="text-xs text-gray-400 hover:text-red-500 transition-colors font-medium ml-1"
+                    >
+                        Clear all
+                    </button>
+                </div>
+            )}
+
             {/* Metrics Modal */}
             <MetricsModal board={initialBoard} isOpen={isMetricsOpen} onClose={() => setIsMetricsOpen(false)} />
 
-            {/* Disable Dragging when filtering */}
             <DndContext
                 id="kanban-board"
                 collisionDetection={closestCorners}
-                onDragStart={isSearchActive ? undefined : handleDragStart}
-                onDragEnd={isSearchActive ? undefined : handleDragEnd}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
                 onDragCancel={handleDragCancel}
             >
                 <div
