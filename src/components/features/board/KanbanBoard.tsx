@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { getPusherClient } from '../../../lib/pusher';
 
 import BoardColumn from './BoardColumn';
+import MetricsPanel from './MetricsPanel';
 // import { TaskStatus } from '../../../types/board';
 
 interface KanbanBoardProps {
@@ -234,6 +235,9 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
                     </div>
                 )}
             </div>
+
+            {/* Metrics Panel */}
+            <MetricsPanel board={initialBoard} />
 
             {/* Disable Dragging when filtering */}
             <DndContext

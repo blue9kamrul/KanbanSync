@@ -39,15 +39,50 @@ export async function moveTask(
             return { success: false, error: 'Unauthorized: Only Reviewers and Leaders can approve tasks to Done.' };
         }
 
-        // Update the task (Notice we use targetColumn.title for the status string)
-        await prisma.task.update({
-            where: { id: taskId },
-            data: {
-                columnId: newColumnId,
-                order: newOrder,
-                status: targetColumn.title
-            },
-        });
+        // Load current task to decide timestamp changes
+        const existingTask = await prisma.task.findUnique({ where: { id: taskId } });
+        if (!existingTask) throw new Error('Task not found');
+
+        // Prepare update payload and set workflow timestamps
+        const updateData: any = {
+            columnId: newColumnId,
+            order: newOrder,
+            status: targetColumn.title,
+        };
+
+        const targetType = targetColumn.title.toLowerCase();
+        const wasDone = (existingTask.completedAt !== null);
+
+        // If moving into a 'In Progress' column and we don't have startedAt, set it
+        if (targetType.includes('in progress') || targetType.includes('in_progress') || targetType.includes('progress') || targetType.includes('doing')) {
+            if (!existingTask.startedAt) updateData.startedAt = new Date();
+            // moving out of Done -> clear completedAt
+            if (wasDone) updateData.completedAt = null;
+        }
+
+        // If moving into Done, set completedAt (and ensure startedAt exists)
+        if (targetType.includes('done') || targetType.includes('complete') || targetType.includes('completed')) {
+            if (!existingTask.startedAt) updateData.startedAt = existingTask.createdAt ?? new Date();
+            updateData.completedAt = new Date();
+        }
+
+        // If moving back to backlog/todo, clear started/completed as appropriate
+        if (targetType.includes('todo') || targetType.includes('backlog')) {
+            updateData.startedAt = null;
+            updateData.completedAt = null;
+        }
+
+        try {
+            await prisma.task.update({ where: { id: taskId }, data: updateData });
+        } catch (err) {
+            // If the Prisma client or DB doesn't have the new timestamp fields yet,
+            // fall back to a minimal update so dragging still works.
+            console.warn('Timestamp update failed, falling back to minimal update:', err);
+            await prisma.task.update({
+                where: { id: taskId },
+                data: { columnId: newColumnId, order: newOrder, status: targetColumn.title },
+            });
+        }
 
         // Broadcast the change to the specific board's channel
         // Fire Pusher

@@ -131,6 +131,10 @@ model Task {
 
   comments Comment[]
 
+  // Timestamps for tracking workflow
+  startedAt DateTime?
+  completedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
