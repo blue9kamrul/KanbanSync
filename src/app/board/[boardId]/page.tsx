@@ -11,12 +11,24 @@ export const dynamic = 'force-dynamic';
 export default async function BoardPage({ params }: { params: Promise<{ boardId: string }> }) {
     const { boardId } = await params;
 
-    const [board, userRole, session] = await Promise.all([
+    // Resolve auth first — needed by both getBoardData and getUserRole.
+    // Keeping it outside Promise.all prevents notFound() from being swallowed
+    // by a concurrent executor in production builds.
+    const session = await auth();
+
+    if (!session?.user) {
+        notFound();
+    }
+
+    const [board, userRole] = await Promise.all([
         getBoardData(boardId),
         getUserRole(boardId),
-        auth(),
     ]);
 
+    // Call notFound() here in the component — never inside Promise.all or the DAL.
+    // Next.js can only intercept its special notFound/redirect errors when thrown
+    // from the page component directly; throwing from inside Promise.all
+    // breaks the mechanism in production builds.
     if (!board) notFound();
 
     const signOutAction = async () => {

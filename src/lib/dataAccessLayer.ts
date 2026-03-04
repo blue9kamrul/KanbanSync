@@ -1,22 +1,21 @@
 import { prisma } from './db';
 import { cache } from 'react';
-import { notFound } from 'next/navigation';
 import { auth } from '../../auth';
 import { BoardWithColumnsAndTasks } from '../types/board';
 
 
 // 'cache' memoizes the result for the duration of the server request
-export const getBoardData = cache(async (boardId: string): Promise<BoardWithColumnsAndTasks> => {
-    if (!boardId) notFound(); // guard before any DB call
+export const getBoardData = cache(async (boardId: string): Promise<BoardWithColumnsAndTasks | null> => {
+    if (!boardId) return null; // guard before any DB call
 
     // Get the current user session
     const session = await auth();
-    if (!session?.user?.email) throw new Error('Unauthorized');
+    if (!session?.user?.email) return null;
 
     // Look up user by email so ownership check works even with a stale JWT
     // after a DB reset, where session.user.id no longer matches the DB row
     const dbUser = await prisma.user.findUnique({ where: { email: session.user.email } });
-    if (!dbUser) throw new Error('User record not found – please sign out and sign back in.');
+    if (!dbUser) return null;
 
     // Fetch the board AND verify ownership simultaneously
     console.log('[DAL] getBoardData: boardId=', boardId, 'sessionEmail=', session.user.email);
@@ -50,7 +49,7 @@ export const getBoardData = cache(async (boardId: string): Promise<BoardWithColu
         },
     });
 
-    if (!board) notFound(); //triggers not-found.tsx (404 page)
+    if (!board) return null;
     console.log('[DAL] getBoardData: found board=', !!board);
 
     return board;
