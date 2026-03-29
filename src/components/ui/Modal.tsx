@@ -24,7 +24,7 @@ export default function Modal({ isOpen, onClose, children, className }: ModalPro
             <div className={`app-bg rounded-2xl shadow-2xl ring-1 ring-slate-200/80 w-full relative overflow-hidden ${className ?? 'max-w-md'}`}>
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 z-10 w-9 h-9 flex items-center justify-center rounded-full text-slate-500 hover:text-slate-800 bg-white/80 hover:bg-white border border-slate-200/80 shadow-sm transition-colors text-sm"
+                    className="absolute top-4 right-4 z-10 w-9 h-9 flex items-center justify-center rounded-full text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-200 shadow-sm transition-colors text-sm"
                     aria-label="Close modal"
                 >
                     ✕

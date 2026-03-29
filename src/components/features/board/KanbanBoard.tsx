@@ -480,7 +480,10 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
                     {isViewsOpen && (
                         <div className="absolute top-full mt-2 left-0 z-40 w-64 app-bg rounded-xl border border-slate-200 shadow-xl p-2">
                             {savedViews.length === 0 ? (
-                                <p className="text-xs text-slate-500 px-2 py-2">No saved views yet.</p>
+                                <div className="px-2 py-2 space-y-1">
+                                    <p className="text-xs text-slate-500">No saved views yet.</p>
+                                    <p className="text-[11px] text-slate-400">Open Filters, set your filters, enter a view name in Saved Views, then click Save.</p>
+                                </div>
                             ) : (
                                 savedViews.map((view) => (
                                     <div key={view.id} className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg hover:bg-white/80">
@@ -504,6 +507,9 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
                                         </button>
                                     </div>
                                 ))
+                            )}
+                            {savedViews.length > 0 && (
+                                <p className="text-[11px] text-slate-400 px-2 pt-2 border-t border-slate-200 mt-2">Create new views from the Filters panel saved-views section.</p>
                             )}
                         </div>
                     )}

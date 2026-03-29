@@ -55,17 +55,30 @@ const getPriorityAccent = (priority: string) => {
 // Helper function to color-code categories
 const getCategoryColor = (category: TaskCategory) => {
     switch (category) {
-        case 'NEW_FEATURE': return 'bg-blue-50 text-blue-700 border-blue-200';
-        case 'EPIC': return 'bg-purple-50 text-purple-700 border-purple-200';
-        case 'STORY': return 'bg-indigo-50 text-indigo-700 border-indigo-200';
-        case 'TASK': return 'bg-gray-100 text-gray-600 border-gray-200';
-        case 'SUB_TASK': return 'bg-slate-50 text-slate-600 border-slate-200';
-        case 'BUG': return 'bg-red-50 text-red-700 border-red-200';
-        case 'ENHANCEMENT': return 'bg-amber-50 text-amber-700 border-amber-200';
-        case 'PATCH': return 'bg-orange-50 text-orange-700 border-orange-200';
-        case 'HOTFIX': return 'bg-rose-50 text-rose-700 border-rose-200';
+        case 'NEW_FEATURE': return 'bg-blue-100 text-blue-800 border-blue-300';
+        case 'EPIC': return 'bg-purple-100 text-purple-800 border-purple-300';
+        case 'STORY': return 'bg-indigo-100 text-indigo-800 border-indigo-300';
+        case 'TASK': return 'bg-gray-200 text-gray-800 border-gray-300';
+        case 'SUB_TASK': return 'bg-slate-200 text-slate-800 border-slate-300';
+        case 'BUG': return 'bg-red-100 text-red-800 border-red-300';
+        case 'ENHANCEMENT': return 'bg-amber-100 text-amber-800 border-amber-300';
+        case 'PATCH': return 'bg-orange-100 text-orange-800 border-orange-300';
+        case 'HOTFIX': return 'bg-rose-100 text-rose-800 border-rose-300';
         default: return 'bg-gray-100 text-gray-600 border-gray-200';
     }
+};
+
+const tagPalettes = [
+    'bg-cyan-100 text-cyan-800 border-cyan-300',
+    'bg-emerald-100 text-emerald-800 border-emerald-300',
+    'bg-violet-100 text-violet-800 border-violet-300',
+    'bg-amber-100 text-amber-800 border-amber-300',
+    'bg-pink-100 text-pink-800 border-pink-300',
+];
+
+const tagColorFor = (tag: string) => {
+    const idx = Array.from(tag).reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % tagPalettes.length;
+    return tagPalettes[idx];
 };
 
 // Assignee avatar with tooltip
@@ -178,14 +191,21 @@ export default memo(function SortableTask({ task, boardId, members, currentUserE
                             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md uppercase tracking-wide border shrink-0 ${getCategoryColor(task.category)}`}>
                                 {task.category.replace(/_/g, ' ')}
                             </span>
-                            {hasPriority && <PriorityIcon priority={task.priority} />}
                             {task.assignee
-                                ? <AssigneeAvatar name={task.assignee.name} image={task.assignee.image} />
+                                ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100/90 border border-slate-200 px-1.5 py-0.5">
+                                        <AssigneeAvatar name={task.assignee.name} image={task.assignee.image} />
+                                        {hasPriority && <PriorityIcon priority={task.priority} className="w-3 h-3" />}
+                                    </span>
+                                )
                                 : (
-                                    <div className="w-5 h-5 rounded-full border border-dashed border-gray-300 flex items-center justify-center shrink-0" title="Unassigned">
-                                        <svg className="w-2.5 h-2.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                        </svg>
+                                    <div className="inline-flex items-center gap-1 rounded-full bg-slate-100/90 border border-slate-200 px-1.5 py-0.5">
+                                        <div className="w-5 h-5 rounded-full border border-dashed border-gray-300 flex items-center justify-center shrink-0" title="Unassigned">
+                                            <svg className="w-2.5 h-2.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                            </svg>
+                                        </div>
+                                        {hasPriority && <PriorityIcon priority={task.priority} className="w-3 h-3" />}
                                     </div>
                                 )
                             }
@@ -232,7 +252,7 @@ export default memo(function SortableTask({ task, boardId, members, currentUserE
                     {hasTags && (
                         <div className="flex flex-wrap gap-1 mt-1">
                             {task.tags.slice(0, 3).map((tag, i) => (
-                                <span key={i} className="px-1.5 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-medium rounded-md border border-slate-200 truncate max-w-20">
+                                <span key={i} className={`px-1.5 py-0.5 text-[10px] font-semibold rounded-md border truncate max-w-20 ${tagColorFor(tag)}`}>
                                     #{tag}
                                 </span>
                             ))}
@@ -250,7 +270,7 @@ export default memo(function SortableTask({ task, boardId, members, currentUserE
                                 {isOverdue ? 'Overdue' : 'Due'} {dueAt.toLocaleDateString()}
                             </span>
                             {hasGitLink && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-slate-100 text-slate-700 border-slate-200">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-violet-100 text-violet-800 border-violet-300 shadow-sm">
                                     <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                                         <path d="M8 17l-5 5V2h20v20l-5-5" />
                                     </svg>
@@ -262,7 +282,7 @@ export default memo(function SortableTask({ task, boardId, members, currentUserE
 
                     {!dueAt && hasGitLink && (
                         <div className="mt-2">
-                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-slate-100 text-slate-700 border-slate-200">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-violet-100 text-violet-800 border-violet-300 shadow-sm">
                                 <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                                     <path d="M8 17l-5 5V2h20v20l-5-5" />
                                 </svg>

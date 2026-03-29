@@ -100,6 +100,15 @@ function PriorityBadge({ priority }: { priority: string }) {
     );
 }
 
+function SideSectionTitle({ label, dotColor }: { label: string; dotColor: string }) {
+    return (
+        <p className="text-[10px] font-black text-slate-700 uppercase tracking-[0.16em] mb-2 flex items-center gap-1.5">
+            <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+            {label}
+        </p>
+    );
+}
+
 export default function TaskDetailsModal({ isOpen, onClose, task, boardId, members, allTasks, currentUserEmail }: TaskDetailsModalProps) {
     const [description, setDescription] = useState(task.description || '');
     const [saved, setSaved] = useState(false);
@@ -350,6 +359,18 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
         });
     };
 
+    const handleApplyAll = () => {
+        handleDescriptionSave();
+        handleTagsSave();
+        handleDueSave();
+        handleReminderSave();
+    };
+
+    const handleSaveAndClose = () => {
+        handleApplyAll();
+        onClose();
+    };
+
     return (
         <Modal isOpen={isOpen} onClose={onClose} className="max-w-7xl">
             <div className="flex flex-col md:flex-row h-[92vh] max-h-[92vh] overflow-hidden app-bg">
@@ -540,11 +561,11 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     </div>
 
                     {/* Activity */}
-                    <div className="flex flex-col app-surface rounded-2xl border border-slate-200/70 p-4 min-h-96 overflow-hidden pb-4">
+                    <div className="flex flex-col app-surface rounded-2xl border border-slate-200/70 p-4 min-h-96 overflow-visible pb-4">
                         <h3 className="text-xs font-bold text-slate-700 uppercase tracking-[0.16em] mb-3 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Activity</h3>
 
                         {/* Comment list */}
-                        <div className="overflow-y-auto space-y-3 mb-4 bg-slate-50 rounded-2xl p-5 border border-slate-200/80 min-h-76 max-h-92">
+                        <div className="overflow-y-auto space-y-3 mb-4 bg-slate-50 rounded-2xl p-5 border border-slate-200/80 min-h-76 max-h-96">
                             {timeline.length === 0 && (
                                 <div className="flex flex-col items-center justify-center h-full py-12 gap-3 text-center">
                                     <svg className="w-14 h-14 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -576,8 +597,8 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                                 const activity = item.value as ActivityType;
                                 return (
                                     <div key={item.id} className="flex gap-2.5">
-                                        <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">
-                                            •
+                                        <div className="w-7 h-7 rounded-full bg-linear-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">
+                                            {(activity.actor?.name?.[0] ?? activity.actor?.email?.[0] ?? 'S').toUpperCase()}
                                         </div>
                                         <div className="flex-1 bg-white rounded-xl px-3 py-2 border border-slate-100">
                                             <div className="flex items-center justify-between gap-2 mb-0.5">
@@ -592,7 +613,7 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                         </div>
 
                         {/* Comment input */}
-                        <div className="relative flex items-center gap-2.5 pb-2 pt-1">
+                        <div className="relative flex items-center gap-2.5 pb-3 pt-2 bg-white/90 rounded-xl px-2 border border-slate-200/80">
                             {/* @mention dropdown */}
                             {mentionQuery !== null && mentionSuggestions.length > 0 && (
                                 <div className="absolute bottom-full mb-1.5 left-0 right-0 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
@@ -650,8 +671,8 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.18em] mb-1">Task Settings</p>
 
                     {/* Assignee */}
-                    <div className="mb-3 app-surface rounded-xl border border-slate-200/70 p-3">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Assignee</p>
+                    <div className="mb-3 rounded-xl border border-emerald-200/70 bg-emerald-50/35 p-3">
+                        <SideSectionTitle label="Assignee" dotColor="bg-emerald-500" />
                         {assignee ? (
                             <div className="flex items-center gap-2 mb-2">
                                 <div className="w-7 h-7 rounded-full bg-linear-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-[11px] font-bold text-white">
@@ -685,8 +706,8 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     </div>
 
                     {/* Priority */}
-                    <div className="mb-3 app-surface rounded-xl border border-slate-200/70 p-3">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Priority</p>
+                    <div className="mb-3 rounded-xl border border-rose-200/70 bg-rose-50/35 p-3">
+                        <SideSectionTitle label="Priority" dotColor="bg-rose-500" />
                         {isLeader ? (
                             <div data-tour="task-priority-field" className="grid grid-cols-2 gap-1.5">
                                 {priorityOptions.map((opt) => (
@@ -717,16 +738,16 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     </div>
 
                     {/* Category (read-only badge) */}
-                    <div className="mb-3 app-surface rounded-xl border border-slate-200/70 p-3">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Category</p>
+                    <div className="mb-3 rounded-xl border border-indigo-200/70 bg-indigo-50/35 p-3">
+                        <SideSectionTitle label="Category" dotColor="bg-indigo-500" />
                         <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ${cat.color}`}>
                             {cat.label}
                         </span>
                     </div>
 
                     {/* Tags */}
-                    <div className="mb-3 app-surface rounded-xl border border-slate-200/70 p-3">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Tags</p>
+                    <div className="mb-3 rounded-xl border border-fuchsia-200/70 bg-fuchsia-50/30 p-3">
+                        <SideSectionTitle label="Tags" dotColor="bg-fuchsia-500" />
                         {isLeader ? (
                             <>
                                 <input
@@ -754,8 +775,8 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     </div>
 
                     {/* Due date */}
-                    <div className="mb-3 app-surface rounded-xl border border-slate-200/70 p-3">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Due Date</p>
+                    <div className="mb-3 rounded-xl border border-amber-200/70 bg-amber-50/35 p-3">
+                        <SideSectionTitle label="Due Date" dotColor="bg-amber-500" />
                         {isLeader ? (
                             <input
                                 type="datetime-local"
@@ -771,8 +792,8 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     </div>
 
                     {/* Reminder */}
-                    <div className="mb-3 app-surface rounded-xl border border-slate-200/70 p-3">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Reminder</p>
+                    <div className="mb-3 rounded-xl border border-cyan-200/70 bg-cyan-50/35 p-3">
+                        <SideSectionTitle label="Reminder" dotColor="bg-cyan-500" />
                         {isLeader ? (
                             <input
                                 type="datetime-local"
@@ -788,8 +809,8 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     </div>
 
                     {/* Recurrence */}
-                    <div className="mb-3 app-surface rounded-xl border border-slate-200/70 p-3">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Recurrence</p>
+                    <div className="mb-3 rounded-xl border border-violet-200/70 bg-violet-50/35 p-3">
+                        <SideSectionTitle label="Recurrence" dotColor="bg-violet-500" />
                         {isLeader ? (
                             <select
                                 value={recurrence}
@@ -807,19 +828,19 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     </div>
 
                     {/* Dependencies */}
-                    <div className="mb-3 app-surface rounded-xl border border-slate-200/70 p-3">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Dependencies</p>
+                    <div className="mb-3 rounded-xl border border-orange-200/70 bg-orange-50/35 p-3">
+                        <SideSectionTitle label="Dependencies" dotColor="bg-orange-500" />
                         <p className="text-[11px] text-slate-500 mb-2">
                             Dependency means this task cannot move forward until its blocker task is completed.
                         </p>
 
-                        <div className="space-y-2 max-h-28 overflow-y-auto pr-1">
+                        <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                             {blocking.length === 0 ? (
                                 <p className="text-xs text-gray-400">No blockers.</p>
                             ) : (
                                 blocking.map((dep) => (
-                                    <div key={dep.id} className="flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-lg px-2 py-1.5">
-                                        <span className="text-xs text-slate-700 truncate">Blocked by: {dep.dependsOn.title}</span>
+                                    <div key={dep.id} className="flex items-start justify-between gap-2 bg-white border border-slate-200 rounded-lg px-2 py-1.5">
+                                        <span className="text-xs text-slate-700 wrap-break-word pr-1">Blocked by: {dep.dependsOn.title}</span>
                                         {isLeader && (
                                             <button
                                                 type="button"
@@ -873,9 +894,9 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     </div>
 
                     {/* Time tracking */}
-                    <div className="mb-3 app-surface rounded-xl border border-slate-200/70 p-3">
+                    <div className="mb-3 rounded-xl border border-teal-200/70 bg-teal-50/35 p-3">
                         <div className="flex items-center justify-between gap-2 mb-2">
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Time Tracking</p>
+                            <SideSectionTitle label="Time Tracking" dotColor="bg-teal-500" />
                             <span className="text-[11px] text-slate-600 font-semibold">{totalTrackedMinutes} min total</span>
                         </div>
 
@@ -935,8 +956,8 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     </div>
 
                     {/* Git integration */}
-                    <div className="mb-3 app-surface rounded-xl border border-slate-200/70 p-3">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Git Links</p>
+                    <div className="mb-3 rounded-xl border border-sky-200/70 bg-sky-50/35 p-3">
+                        <SideSectionTitle label="Git Links" dotColor="bg-sky-500" />
                         <p className="text-[11px] text-slate-500 mb-2">Attach PRs, commits, or branch links to this task.</p>
 
                         <div className="space-y-2 max-h-28 overflow-y-auto pr-1">
@@ -1008,6 +1029,31 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
 
                     {/* Divider */}
                     <div className="border-t border-slate-200 my-1" />
+
+                    {/* Sticky actions */}
+                    <div className="mt-1 app-surface rounded-xl border border-slate-200/70 p-3 space-y-2">
+                        <button
+                            type="button"
+                            onClick={handleApplyAll}
+                            className="w-full px-3.5 py-2 bg-amber-500 text-white text-xs font-semibold rounded-lg hover:bg-amber-600 transition-colors"
+                        >
+                            Apply Changes
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleSaveAndClose}
+                            className="w-full px-3.5 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 transition-colors"
+                        >
+                            Save and Close
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="w-full px-3.5 py-2 bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold rounded-lg hover:bg-rose-200 transition-colors"
+                        >
+                            Close
+                        </button>
+                    </div>
 
                     {/* Task ID */}
                     <div className="mt-auto pt-3 app-surface rounded-xl border border-slate-200/70 p-3">
