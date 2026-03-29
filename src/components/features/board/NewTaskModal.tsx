@@ -7,6 +7,7 @@ import { TaskStatus, TaskCategory } from '../../../generated/prisma/enums';
 import { BoardWithColumnsAndTasks } from '../../../types/board';
 
 type MemberType = BoardWithColumnsAndTasks['members'][number];
+type TemplateType = BoardWithColumnsAndTasks['taskTemplates'][number];
 
 interface NewTaskModalProps {
     isOpen: boolean;
@@ -15,6 +16,7 @@ interface NewTaskModalProps {
     columnId: string;
     columnTitle: string;
     members?: MemberType[];
+    templates?: TemplateType[];
 }
 
 const categoryConfig: Record<string, { label: string; color: string }> = {
@@ -29,7 +31,7 @@ const categoryConfig: Record<string, { label: string; color: string }> = {
     HOTFIX: { label: 'Hotfix', color: 'bg-rose-100 text-rose-700 ring-1 ring-rose-200' },
 };
 
-export default function NewTaskModal({ isOpen, onClose, boardId, columnId, columnTitle, members = [] }: NewTaskModalProps) {
+export default function NewTaskModal({ isOpen, onClose, boardId, columnId, columnTitle, members = [], templates = [] }: NewTaskModalProps) {
     const [title, setTitle] = useState('');
     const [category, setCategory] = useState<TaskCategory>(TaskCategory.NEW_FEATURE);
     const [description, setDescription] = useState('');
@@ -39,6 +41,7 @@ export default function NewTaskModal({ isOpen, onClose, boardId, columnId, colum
     const [dueAt, setDueAt] = useState('');
     const [reminderAt, setReminderAt] = useState('');
     const [recurrence, setRecurrence] = useState<'NONE' | 'DAILY' | 'WEEKLY' | 'MONTHLY'>('NONE');
+    const [selectedTemplateId, setSelectedTemplateId] = useState('');
     const [isPending, startTransition] = useTransition();
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -50,6 +53,7 @@ export default function NewTaskModal({ isOpen, onClose, boardId, columnId, colum
         setDescription(''); setAssigneeId(''); setErrorMsg(null);
         setPriority('NONE'); setTagsInput('');
         setDueAt(''); setReminderAt(''); setRecurrence('NONE');
+        setSelectedTemplateId('');
     };
 
     const handleClose = () => { reset(); onClose(); };
@@ -81,6 +85,19 @@ export default function NewTaskModal({ isOpen, onClose, boardId, columnId, colum
             if (result.success) { reset(); onClose(); }
             else setErrorMsg(result.error ?? 'Something went wrong');
         });
+    };
+
+    const handleApplyTemplate = () => {
+        if (!selectedTemplateId) return;
+        const template = templates.find((t) => t.id === selectedTemplateId);
+        if (!template) return;
+
+        setTitle(template.title);
+        setDescription(template.description ?? '');
+        setCategory(template.category);
+        setPriority(template.priority);
+        setTagsInput((template.tags ?? []).join(', '));
+        setRecurrence((template.recurrence as 'NONE' | 'DAILY' | 'WEEKLY' | 'MONTHLY') ?? 'NONE');
     };
 
     return (
@@ -167,6 +184,31 @@ export default function NewTaskModal({ isOpen, onClose, boardId, columnId, colum
 
                 {/* ── RIGHT: Sidebar ───────────────────────────────────── */}
                 <div className="w-full md:w-56 shrink-0 flex flex-col gap-1 bg-gray-50 border-l border-gray-100 p-5 rounded-r-2xl">
+
+                    {/* Template */}
+                    <div className="mb-5">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Template</p>
+                        <select
+                            value={selectedTemplateId}
+                            onChange={(e) => setSelectedTemplateId(e.target.value)}
+                            className="w-full px-2.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 cursor-pointer hover:border-blue-300 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
+                        >
+                            <option value="">Start blank</option>
+                            {templates.map((template) => (
+                                <option key={template.id} value={template.id}>
+                                    {template.name}
+                                </option>
+                            ))}
+                        </select>
+                        <button
+                            type="button"
+                            onClick={handleApplyTemplate}
+                            disabled={!selectedTemplateId}
+                            className="mt-2 w-full px-3 py-2 rounded-lg bg-white border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Apply Template
+                        </button>
+                    </div>
 
                     {/* Category */}
                     <div className="mb-5">

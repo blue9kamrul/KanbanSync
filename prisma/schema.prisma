@@ -25,6 +25,8 @@ model User {
   sentInvites      BoardInvite[]  @relation("InviterToInvite")
   receivedInvites  BoardInvite[]  @relation("InvitedToInvite")
   notifications    Notification[]
+  taskActivities   TaskActivity[]
+  taskTemplates    TaskTemplate[]
 
   @@map("users")
 }
@@ -83,6 +85,7 @@ model Board {
   updatedAt DateTime      @updatedAt
   members   BoardMember[] // NEW: Team members
   invites   BoardInvite[]
+  taskTemplates TaskTemplate[]
 
   @@map("boards")
 }
@@ -133,6 +136,7 @@ model Task {
   comments Comment[]
   subtasks Subtask[]
   attachments Attachment[]
+  activities TaskActivity[]
 
   // Timestamps for tracking workflow
   startedAt   DateTime?
@@ -148,6 +152,42 @@ model Task {
   updatedAt DateTime @updatedAt
 
   @@map("tasks")
+}
+
+model TaskActivity {
+  id        String           @id @default(cuid())
+  taskId    String
+  actorId   String?
+  action    TaskActivityType
+  message   String
+  meta      Json?
+  createdAt DateTime         @default(now())
+
+  task      Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actor     User?            @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@map("task_activities")
+}
+
+model TaskTemplate {
+  id          String       @id @default(cuid())
+  boardId     String
+  createdById String?
+  name        String
+  title       String
+  description String?      @db.Text
+  category    TaskCategory @default(TASK)
+  priority    Priority     @default(NONE)
+  tags        String[]
+  recurrence  RecurrenceRule @default(NONE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  board       Board        @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  createdBy   User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([boardId, name])
+  @@map("task_templates")
 }
 
 model Subtask {
@@ -225,6 +265,20 @@ enum RecurrenceRule {
   DAILY
   WEEKLY
   MONTHLY
+}
+
+enum TaskActivityType {
+  CREATED
+  MOVED
+  UPDATED
+  COMMENTED
+  ASSIGNED
+  SUBTASK_ADDED
+  SUBTASK_TOGGLED
+  SUBTASK_DELETED
+  ATTACHMENT_ADDED
+  ATTACHMENT_DELETED
+  TEMPLATE_SAVED
 }
 
 model BoardInvite {

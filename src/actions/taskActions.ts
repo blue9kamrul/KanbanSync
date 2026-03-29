@@ -2,13 +2,14 @@
 
 import { prisma } from '../lib/db';
 import { revalidatePath } from 'next/cache';
-import { TaskStatus, TaskCategory, Priority } from '../generated/prisma/client';
+import { TaskStatus, TaskCategory, Priority, TaskActivityType } from '../generated/prisma/client';
 // import { auth } from '../../auth';
 import { pusherServer } from '../lib/pusher-server';
 import { getUserRole } from '../lib/permission';
 import { BoardRole } from '../generated/prisma/client';
 import { auth } from '../../auth';
 import { notifyAssignedUser } from './notificationActions';
+import { logTaskActivity } from '../lib/activity';
 
 function addRecurringOffset(base: Date, recurrence: string) {
     const next = new Date(base);
@@ -24,6 +25,7 @@ export async function moveTask(
     newOrder: number,
     boardId: string
 ) {
+    const session = await auth();
     const role = await getUserRole(boardId);
     if (!role) return { success: false, error: 'Unauthorized' };
     try {
@@ -116,6 +118,17 @@ export async function moveTask(
                 data: { columnId: newColumnId, order: newOrder, status: targetColumn.title },
             });
         }
+
+        await logTaskActivity({
+            taskId,
+            action: TaskActivityType.MOVED,
+            actorId: session?.user?.id,
+            message: `Moved task from ${sourceColumn?.title ?? 'Unknown'} to ${targetColumn.title}`,
+            meta: {
+                from: sourceColumn?.title ?? null,
+                to: targetColumn.title,
+            },
+        });
 
         if (movingIntoDone && existingTask.recurrence && existingTask.recurrence !== 'NONE') {
             const boardColumns = await prisma.column.findMany({
@@ -236,11 +249,22 @@ export async function createTask(
             },
         });
 
+        const session = await auth();
+        await logTaskActivity({
+            taskId: task.id,
+            action: TaskActivityType.CREATED,
+            actorId: session?.user?.id,
+            message: 'Created this task',
+            meta: {
+                status,
+                category,
+            },
+        });
+
         await pusherServer.trigger(`board-${boardId}`, 'board-updated', { message: 'Task created' });
 
         // Notify the assignee (if someone was assigned and it's not the creator)
         if (assigneeId) {
-            const session = await auth();
             const board = await prisma.board.findUnique({ where: { id: boardId }, select: { title: true } });
             await notifyAssignedUser(
                 assigneeId,
@@ -264,6 +288,14 @@ export async function createTask(
 
 export async function deleteTask(taskId: string, boardId: string) {
     try {
+        const task = await prisma.task.findUnique({ where: { id: taskId }, select: { title: true } });
+
+        await logTaskActivity({
+            taskId,
+            action: TaskActivityType.UPDATED,
+            message: `Task deleted: ${task?.title ?? 'Untitled task'}`,
+        });
+
         await prisma.task.delete({
             where: { id: taskId },
         });
@@ -288,6 +320,7 @@ export async function updateTask(
     recurrence?: string,
 ) {
     try {
+        const session = await auth();
         await prisma.task.update({
             where: { id: taskId },
             data: {
@@ -298,6 +331,20 @@ export async function updateTask(
                 ...(dueAt !== undefined ? { dueAt: dueAt ? new Date(dueAt) : null } : {}),
                 ...(reminderAt !== undefined ? { reminderAt: reminderAt ? new Date(reminderAt) : null, reminderSentAt: null } : {}),
                 ...(recurrence !== undefined ? { recurrence: recurrence as 'NONE' | 'DAILY' | 'WEEKLY' | 'MONTHLY' } : {}),
+            },
+        });
+
+        await logTaskActivity({
+            taskId,
+            action: TaskActivityType.UPDATED,
+            actorId: session?.user?.id,
+            message: 'Updated task properties',
+            meta: {
+                priority: priority ?? null,
+                tags: tags ?? null,
+                dueAt: dueAt ?? null,
+                reminderAt: reminderAt ?? null,
+                recurrence: recurrence ?? null,
             },
         });
 

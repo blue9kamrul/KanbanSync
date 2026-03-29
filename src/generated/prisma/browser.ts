@@ -58,6 +58,16 @@ export type Column = Prisma.ColumnModel
  */
 export type Task = Prisma.TaskModel
 /**
+ * Model TaskActivity
+ * 
+ */
+export type TaskActivity = Prisma.TaskActivityModel
+/**
+ * Model TaskTemplate
+ * 
+ */
+export type TaskTemplate = Prisma.TaskTemplateModel
+/**
  * Model Subtask
  * 
  */

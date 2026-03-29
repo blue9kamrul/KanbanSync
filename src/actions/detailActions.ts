@@ -5,6 +5,8 @@ import { prisma } from '../lib/db';
 import { auth } from '../../auth';
 import { revalidatePath } from 'next/cache';
 import { pusherServer } from '../lib/pusher-server';
+import { TaskActivityType } from '../generated/prisma/client';
+import { logTaskActivity } from '../lib/activity';
 
 export async function addComment(taskId: string, boardId: string, text: string) {
     const session = await auth();
@@ -18,6 +20,14 @@ export async function addComment(taskId: string, boardId: string, text: string) 
                 userId: session.user.id,
             },
             include: { user: true } // Return user info so UI updates instantly
+        });
+
+        await logTaskActivity({
+            taskId,
+            action: TaskActivityType.COMMENTED,
+            actorId: session.user.id,
+            message: 'Added a comment',
+            meta: { commentId: comment.id },
         });
 
         await pusherServer.trigger(`board-${boardId}`, 'board-updated', { message: 'New comment' });
@@ -77,9 +87,17 @@ export async function addComment(taskId: string, boardId: string, text: string) 
 
 export async function updateTaskDescription(taskId: string, boardId: string, description: string) {
     try {
+        const session = await auth();
         await prisma.task.update({
             where: { id: taskId },
             data: { description },
+        });
+
+        await logTaskActivity({
+            taskId,
+            action: TaskActivityType.UPDATED,
+            actorId: session?.user?.id,
+            message: 'Updated task description',
         });
         revalidatePath(`/board/${boardId}`);
         return { success: true };
@@ -100,6 +118,14 @@ export async function assignTask(taskId: string, boardId: string, assigneeId: st
         await prisma.task.update({
             where: { id: taskId },
             data: { assigneeId },
+        });
+
+        await logTaskActivity({
+            taskId,
+            action: TaskActivityType.ASSIGNED,
+            actorId: session?.user?.id,
+            message: 'Changed assignee',
+            meta: { assigneeId },
         });
         await pusherServer.trigger(`board-${boardId}`, 'board-updated', { message: 'Task assigned' });
 
@@ -138,6 +164,15 @@ export async function addSubtask(taskId: string, boardId: string, title: string)
             },
         });
 
+        const session = await auth();
+        await logTaskActivity({
+            taskId,
+            action: TaskActivityType.SUBTASK_ADDED,
+            actorId: session?.user?.id,
+            message: `Added checklist item: ${subtask.title}`,
+            meta: { subtaskId: subtask.id },
+        });
+
         await pusherServer.trigger(`board-${boardId}`, 'board-updated', { message: 'Subtask added' });
         revalidatePath(`/board/${boardId}`);
         return { success: true, subtask };
@@ -154,6 +189,15 @@ export async function toggleSubtask(subtaskId: string, boardId: string, done: bo
             data: { done },
         });
 
+        const session = await auth();
+        await logTaskActivity({
+            taskId: subtask.taskId,
+            action: TaskActivityType.SUBTASK_TOGGLED,
+            actorId: session?.user?.id,
+            message: `${done ? 'Completed' : 'Reopened'} checklist item: ${subtask.title}`,
+            meta: { subtaskId: subtask.id, done },
+        });
+
         await pusherServer.trigger(`board-${boardId}`, 'board-updated', { message: 'Subtask updated' });
         revalidatePath(`/board/${boardId}`);
         return { success: true, subtask };
@@ -165,7 +209,19 @@ export async function toggleSubtask(subtaskId: string, boardId: string, done: bo
 
 export async function deleteSubtask(subtaskId: string, boardId: string) {
     try {
+        const subtask = await prisma.subtask.findUnique({ where: { id: subtaskId } });
         await prisma.subtask.delete({ where: { id: subtaskId } });
+
+        if (subtask) {
+            const session = await auth();
+            await logTaskActivity({
+                taskId: subtask.taskId,
+                action: TaskActivityType.SUBTASK_DELETED,
+                actorId: session?.user?.id,
+                message: `Deleted checklist item: ${subtask.title}`,
+                meta: { subtaskId },
+            });
+        }
         await pusherServer.trigger(`board-${boardId}`, 'board-updated', { message: 'Subtask deleted' });
         revalidatePath(`/board/${boardId}`);
         return { success: true };
@@ -186,6 +242,15 @@ export async function addTaskAttachment(taskId: string, boardId: string, name: s
             },
         });
 
+        const session = await auth();
+        await logTaskActivity({
+            taskId,
+            action: TaskActivityType.ATTACHMENT_ADDED,
+            actorId: session?.user?.id,
+            message: `Added attachment: ${attachment.name}`,
+            meta: { attachmentId: attachment.id },
+        });
+
         await pusherServer.trigger(`board-${boardId}`, 'board-updated', { message: 'Attachment added' });
         revalidatePath(`/board/${boardId}`);
         return { success: true, attachment };
@@ -197,12 +262,68 @@ export async function addTaskAttachment(taskId: string, boardId: string, name: s
 
 export async function deleteTaskAttachment(attachmentId: string, boardId: string) {
     try {
+        const attachment = await prisma.attachment.findUnique({ where: { id: attachmentId } });
         await prisma.attachment.delete({ where: { id: attachmentId } });
+
+        if (attachment) {
+            const session = await auth();
+            await logTaskActivity({
+                taskId: attachment.taskId,
+                action: TaskActivityType.ATTACHMENT_DELETED,
+                actorId: session?.user?.id,
+                message: `Removed attachment: ${attachment.name}`,
+                meta: { attachmentId },
+            });
+        }
         await pusherServer.trigger(`board-${boardId}`, 'board-updated', { message: 'Attachment deleted' });
         revalidatePath(`/board/${boardId}`);
         return { success: true };
     } catch (error) {
         console.error('Failed to delete attachment:', error);
         return { success: false, error: 'Failed to delete attachment' };
+    }
+}
+
+export async function saveTaskAsTemplate(taskId: string, boardId: string, name: string) {
+    const session = await auth();
+    if (!session?.user?.id) return { success: false, error: 'Unauthorized' };
+    if (!name.trim()) return { success: false, error: 'Template name is required' };
+
+    try {
+        const task = await prisma.task.findUnique({ where: { id: taskId } });
+        if (!task) return { success: false, error: 'Task not found' };
+
+        const template = await prisma.taskTemplate.create({
+            data: {
+                boardId,
+                createdById: session.user.id,
+                name: name.trim(),
+                title: task.title,
+                description: task.description,
+                category: task.category,
+                priority: task.priority,
+                tags: task.tags,
+                recurrence: task.recurrence,
+            },
+        });
+
+        await logTaskActivity({
+            taskId,
+            action: TaskActivityType.TEMPLATE_SAVED,
+            actorId: session.user.id,
+            message: `Saved template: ${template.name}`,
+            meta: { templateId: template.id },
+        });
+
+        await pusherServer.trigger(`board-${boardId}`, 'board-updated', { message: 'Template saved' });
+        revalidatePath(`/board/${boardId}`);
+        return { success: true, template };
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to save template';
+        if (message.toLowerCase().includes('unique')) {
+            return { success: false, error: 'Template name already exists on this board' };
+        }
+        console.error('Failed to save template:', error);
+        return { success: false, error: 'Failed to save template' };
     }
 }

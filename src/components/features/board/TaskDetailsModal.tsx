@@ -11,6 +11,7 @@ import {
     deleteSubtask,
     addTaskAttachment,
     deleteTaskAttachment,
+    saveTaskAsTemplate,
 } from '../../../actions/detailActions';
 import { updateTask } from '../../../actions/taskActions';
 import { formatDistanceToNow } from 'date-fns';
@@ -24,6 +25,7 @@ type MemberType = BoardWithColumnsAndTasks['members'][number];
 type CommentType = BoardWithColumnsAndTasks['columns'][number]['tasks'][number]['comments'][number];
 type SubtaskType = BoardWithColumnsAndTasks['columns'][number]['tasks'][number]['subtasks'][number];
 type AttachmentType = BoardWithColumnsAndTasks['columns'][number]['tasks'][number]['attachments'][number];
+type ActivityType = BoardWithColumnsAndTasks['columns'][number]['tasks'][number]['activities'][number];
 
 interface TaskDetailsModalProps {
     isOpen: boolean;
@@ -79,6 +81,8 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
     const [attachmentName, setAttachmentName] = useState('');
     const [attachmentUrl, setAttachmentUrl] = useState('');
     const [attachments, setAttachments] = useState<AttachmentType[]>(task.attachments ?? []);
+    const [templateName, setTemplateName] = useState(`${task.title} Template`);
+    const [templateSaved, setTemplateSaved] = useState<string | null>(null);
 
     // Detect @word at the end of the current comment text
     const handleCommentChange = (val: string) => {
@@ -219,15 +223,29 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
     const doneSubtasks = subtasks.filter((s) => s.done).length;
     const subtaskProgress = subtasks.length > 0 ? Math.round((doneSubtasks / subtasks.length) * 100) : 0;
 
+    const timeline = [
+        ...(task.activities ?? []).map((a) => ({ kind: 'activity' as const, id: `activity-${a.id}`, createdAt: new Date(a.createdAt), value: a })),
+        ...(task.comments ?? []).map((c) => ({ kind: 'comment' as const, id: `comment-${c.id}`, createdAt: new Date(c.createdAt), value: c })),
+    ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    const handleSaveTemplate = () => {
+        if (!templateName.trim()) return;
+        startTransition(async () => {
+            const result = await saveTaskAsTemplate(task.id, boardId, templateName);
+            setTemplateSaved(result.success ? 'Template saved' : result.error ?? 'Failed to save');
+            setTimeout(() => setTemplateSaved(null), 2200);
+        });
+    };
+
     return (
-        <Modal isOpen={isOpen} onClose={onClose} className="max-w-5xl">
-            <div className="flex flex-col md:flex-row h-[82vh] max-h-[82vh] overflow-hidden">
+        <Modal isOpen={isOpen} onClose={onClose} className="max-w-6xl">
+            <div className="flex flex-col md:flex-row h-[86vh] max-h-[86vh] overflow-hidden app-bg">
 
                 {/* ── LEFT: Main content ───────────────────────────────── */}
-                <div className="flex-1 flex flex-col min-h-0 p-7 pr-6 overflow-y-auto">
+                <div className="flex-1 flex flex-col min-h-0 px-7 pb-7 pt-4 overflow-y-auto">
 
                     {/* Breadcrumb + title */}
-                    <div className="mb-5">
+                    <div className="sticky top-0 z-20 -mx-7 px-7 pt-3 pb-4 mb-5 bg-white/90 backdrop-blur-md border-b border-slate-200/70">
                         <div className="flex items-center gap-2 mb-2">
                             {task.column?.title && (
                                 <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">
@@ -239,11 +257,30 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                                 {cat.label}
                             </span>
                         </div>
-                        <h2 className="text-[22px] font-bold text-gray-900 leading-snug">{task.title}</h2>
+                        <h2 className="text-[24px] font-bold text-slate-900 leading-tight">{task.title}</h2>
+                        {isLeader && (
+                            <div className="mt-3 flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    value={templateName}
+                                    onChange={(e) => setTemplateName(e.target.value)}
+                                    placeholder="Template name"
+                                    className="w-full max-w-xs px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 placeholder-slate-400 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none"
+                                />
+                                <button
+                                    onClick={handleSaveTemplate}
+                                    disabled={isPending || !templateName.trim()}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    Save as Template
+                                </button>
+                                {templateSaved && <span className="text-[11px] text-slate-500">{templateSaved}</span>}
+                            </div>
+                        )}
                     </div>
 
                     {/* Description */}
-                    <div className="mb-5">
+                    <div className="mb-4 app-surface rounded-2xl border border-slate-200/70 p-4">
                         <div className="flex items-center justify-between mb-1.5">
                             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Description</h3>
                             <span className={`text-[11px] transition-opacity duration-300 ${saved ? 'text-green-500 opacity-100' : 'opacity-0'}`}>
@@ -252,7 +289,7 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                         </div>
                         <textarea
                             data-tour="task-description-field"
-                            className={`w-full h-28 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 resize-none transition-all ${isLeader
+                            className={`w-full h-32 px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-gray-700 placeholder-gray-400 resize-none transition-all ${isLeader
                                 ? 'focus:ring-2 focus:ring-blue-500 focus:bg-white focus:border-transparent cursor-text'
                                 : 'opacity-60 cursor-not-allowed'
                                 }`}
@@ -265,7 +302,7 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     </div>
 
                     {/* Subtasks */}
-                    <div className="mb-5">
+                    <div className="mb-4 app-surface rounded-2xl border border-slate-200/70 p-4">
                         <div className="flex items-center justify-between mb-2">
                             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Checklist</h3>
                             <span className="text-[11px] text-gray-500">{doneSubtasks}/{subtasks.length} done</span>
@@ -277,12 +314,12 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                             </div>
                         )}
 
-                        <div className="space-y-2 mb-3 max-h-32 overflow-y-auto pr-1">
+                        <div className="space-y-2 mb-3 max-h-52 min-h-24 overflow-y-auto pr-1.5">
                             {subtasks.length === 0 && (
                                 <p className="text-xs text-gray-400">No subtasks yet.</p>
                             )}
                             {subtasks.map((sub) => (
-                                <div key={sub.id} className="flex items-center gap-2.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                                <div key={sub.id} className="flex items-center gap-2.5 bg-white border border-slate-200 rounded-xl px-3 py-2.5">
                                     <input
                                         type="checkbox"
                                         checked={sub.done}
@@ -315,11 +352,11 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                                     onChange={(e) => setSubtaskTitle(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
                                     placeholder="Add subtask..."
-                                    className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
+                                    className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
                                 />
                                 <button
                                     onClick={handleAddSubtask}
-                                    className="px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                                    className="px-3.5 py-2 bg-blue-600 text-white text-xs font-semibold rounded-xl hover:bg-blue-700 transition-colors"
                                 >
                                     Add
                                 </button>
@@ -328,15 +365,15 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     </div>
 
                     {/* Attachments */}
-                    <div className="mb-5">
+                    <div className="mb-4 app-surface rounded-2xl border border-slate-200/70 p-4">
                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Attachments</h3>
 
-                        <div className="space-y-2 mb-3 max-h-28 overflow-y-auto pr-1">
+                        <div className="space-y-2 mb-3 max-h-44 min-h-24 overflow-y-auto pr-1.5">
                             {attachments.length === 0 && (
                                 <p className="text-xs text-gray-400">No attachments yet.</p>
                             )}
                             {attachments.map((a) => (
-                                <div key={a.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                                <div key={a.id} className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2.5">
                                     <a
                                         href={a.url}
                                         target="_blank"
@@ -367,7 +404,7 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                                     value={attachmentName}
                                     onChange={(e) => setAttachmentName(e.target.value)}
                                     placeholder="Attachment name"
-                                    className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
+                                    className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
                                 />
                                 <div className="flex gap-2">
                                     <input
@@ -376,11 +413,11 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                                         onChange={(e) => setAttachmentUrl(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleAddAttachment()}
                                         placeholder="https://..."
-                                        className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
+                                        className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
                                     />
                                     <button
                                         onClick={handleAddAttachment}
-                                        className="px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                                        className="px-3.5 py-2 bg-blue-600 text-white text-xs font-semibold rounded-xl hover:bg-blue-700 transition-colors"
                                     >
                                         Add
                                     </button>
@@ -390,33 +427,55 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     </div>
 
                     {/* Activity */}
-                    <div className="flex-1 flex flex-col min-h-0">
+                    <div className="flex-1 flex flex-col min-h-0 app-surface rounded-2xl border border-slate-200/70 p-4">
                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Activity</h3>
 
                         {/* Comment list */}
-                        <div className="flex-1 overflow-y-auto space-y-3 mb-4 bg-gray-50 rounded-xl p-3">
-                            {(!task.comments || task.comments.length === 0) && (
-                                <div className="flex flex-col items-center justify-center h-full py-6 gap-1">
-                                    <svg className="w-7 h-7 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="flex-1 overflow-y-auto space-y-3 mb-4 bg-slate-50 rounded-2xl p-4 border border-slate-200/80 min-h-40">
+                            {timeline.length === 0 && (
+                                <div className="flex flex-col items-center justify-center h-full py-10 gap-2 text-center">
+                                    <svg className="w-10 h-10 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                                     </svg>
-                                    <p className="text-gray-400 text-sm">No activity yet. Start the conversation.</p>
+                                    <p className="text-slate-500 text-base font-medium">No activity yet</p>
+                                    <p className="text-slate-400 text-sm">Start the conversation by posting the first comment.</p>
                                 </div>
                             )}
-                            {task.comments?.map((comment: CommentType) => (
-                                <div key={comment.id} className="flex gap-2.5">
-                                    <div className="w-7 h-7 rounded-full bg-linear-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-[11px] font-bold text-white shrink-0 mt-0.5">
-                                        {comment.user.name?.[0]?.toUpperCase() || 'U'}
-                                    </div>
-                                    <div className="flex-1 bg-white rounded-xl px-3 py-2 shadow-sm border border-gray-100">
-                                        <div className="flex items-baseline gap-2 mb-1">
-                                            <span className="text-xs font-semibold text-gray-900">{comment.user.name}</span>
-                                            <span className="text-[11px] text-gray-400">{formatDistanceToNow(new Date(comment.createdAt))} ago</span>
+                            {timeline.map((item) => {
+                                if (item.kind === 'comment') {
+                                    const comment = item.value as CommentType;
+                                    return (
+                                        <div key={item.id} className="flex gap-2.5">
+                                            <div className="w-7 h-7 rounded-full bg-linear-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-[11px] font-bold text-white shrink-0 mt-0.5">
+                                                {comment.user.name?.[0]?.toUpperCase() || 'U'}
+                                            </div>
+                                            <div className="flex-1 bg-white rounded-xl px-3 py-2 shadow-sm border border-gray-100">
+                                                <div className="flex items-baseline gap-2 mb-1">
+                                                    <span className="text-xs font-semibold text-gray-900">{comment.user.name}</span>
+                                                    <span className="text-[11px] text-gray-400">{formatDistanceToNow(new Date(comment.createdAt))} ago</span>
+                                                </div>
+                                                <p className="text-sm text-gray-700 leading-relaxed">{renderCommentText(comment.text)}</p>
+                                            </div>
                                         </div>
-                                        <p className="text-sm text-gray-700 leading-relaxed">{renderCommentText(comment.text)}</p>
+                                    );
+                                }
+
+                                const activity = item.value as ActivityType;
+                                return (
+                                    <div key={item.id} className="flex gap-2.5">
+                                        <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">
+                                            •
+                                        </div>
+                                        <div className="flex-1 bg-white rounded-xl px-3 py-2 border border-slate-100">
+                                            <div className="flex items-center justify-between gap-2 mb-0.5">
+                                                <span className="text-xs font-semibold text-slate-700">{activity.actor?.name ?? activity.actor?.email ?? 'System'}</span>
+                                                <span className="text-[11px] text-gray-400">{formatDistanceToNow(new Date(activity.createdAt))} ago</span>
+                                            </div>
+                                            <p className="text-sm text-slate-600">{activity.message}</p>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
 
                         {/* Comment input */}
@@ -447,7 +506,7 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                             <div className="w-7 h-7 rounded-full bg-linear-to-br from-violet-400 to-purple-500 flex items-center justify-center text-[11px] font-bold text-white shrink-0">
                                 {currentUserEmail?.[0]?.toUpperCase() || 'M'}
                             </div>
-                            <div className="flex-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+                            <div className="flex-1 flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all shadow-xs">
                                 <input
                                     type="text"
                                     data-tour="task-comment-input"
@@ -473,10 +532,12 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                 </div>
 
                 {/* ── RIGHT: Sidebar ───────────────────────────────────── */}
-                <div className="w-full md:w-60 shrink-0 flex flex-col gap-1 bg-gray-50 border-l border-gray-100 p-5 rounded-r-2xl overflow-y-auto">
+                <div className="w-full md:w-72 shrink-0 flex flex-col gap-2 bg-slate-50/95 border-l border-slate-200/70 p-5 rounded-r-2xl overflow-y-auto">
+
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.18em] mb-1">Task Settings</p>
 
                     {/* Assignee */}
-                    <div className="mb-4">
+                    <div className="mb-3 app-surface rounded-xl border border-slate-200/70 p-3">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Assignee</p>
                         {assignee ? (
                             <div className="flex items-center gap-2 mb-2">
@@ -511,7 +572,7 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     </div>
 
                     {/* Priority */}
-                    <div className="mb-4">
+                    <div className="mb-3 app-surface rounded-xl border border-slate-200/70 p-3">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Priority</p>
                         {isLeader ? (
                             <select
@@ -532,7 +593,7 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     </div>
 
                     {/* Category (read-only badge) */}
-                    <div className="mb-4">
+                    <div className="mb-3 app-surface rounded-xl border border-slate-200/70 p-3">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Category</p>
                         <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ${cat.color}`}>
                             {cat.label}
@@ -540,7 +601,7 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     </div>
 
                     {/* Tags */}
-                    <div className="mb-4">
+                    <div className="mb-3 app-surface rounded-xl border border-slate-200/70 p-3">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Tags</p>
                         {isLeader ? (
                             <>
@@ -569,7 +630,7 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     </div>
 
                     {/* Due date */}
-                    <div className="mb-4">
+                    <div className="mb-3 app-surface rounded-xl border border-slate-200/70 p-3">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Due Date</p>
                         {isLeader ? (
                             <input
@@ -586,7 +647,7 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     </div>
 
                     {/* Reminder */}
-                    <div className="mb-4">
+                    <div className="mb-3 app-surface rounded-xl border border-slate-200/70 p-3">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Reminder</p>
                         {isLeader ? (
                             <input
@@ -622,10 +683,10 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     </div>
 
                     {/* Divider */}
-                    <div className="border-t border-gray-200 my-1" />
+                    <div className="border-t border-slate-200 my-1" />
 
                     {/* Task ID */}
-                    <div className="mt-auto pt-3">
+                    <div className="mt-auto pt-3 app-surface rounded-xl border border-slate-200/70 p-3">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Task ID</p>
                         <code className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded font-mono">
                             #{task.id.slice(-8).toUpperCase()}

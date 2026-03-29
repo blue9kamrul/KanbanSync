@@ -61,3 +61,20 @@ export const RecurrenceRule = {
 } as const
 
 export type RecurrenceRule = (typeof RecurrenceRule)[keyof typeof RecurrenceRule]
+
+
+export const TaskActivityType = {
+  CREATED: 'CREATED',
+  MOVED: 'MOVED',
+  UPDATED: 'UPDATED',
+  COMMENTED: 'COMMENTED',
+  ASSIGNED: 'ASSIGNED',
+  SUBTASK_ADDED: 'SUBTASK_ADDED',
+  SUBTASK_TOGGLED: 'SUBTASK_TOGGLED',
+  SUBTASK_DELETED: 'SUBTASK_DELETED',
+  ATTACHMENT_ADDED: 'ATTACHMENT_ADDED',
+  ATTACHMENT_DELETED: 'ATTACHMENT_DELETED',
+  TEMPLATE_SAVED: 'TEMPLATE_SAVED'
+} as const
+
+export type TaskActivityType = (typeof TaskActivityType)[keyof typeof TaskActivityType]

@@ -59,6 +59,8 @@ export const ModelName = {
   BoardMember: 'BoardMember',
   Column: 'Column',
   Task: 'Task',
+  TaskActivity: 'TaskActivity',
+  TaskTemplate: 'TaskTemplate',
   Subtask: 'Subtask',
   Attachment: 'Attachment',
   Comment: 'Comment',
@@ -191,6 +193,37 @@ export const TaskScalarFieldEnum = {
 export type TaskScalarFieldEnum = (typeof TaskScalarFieldEnum)[keyof typeof TaskScalarFieldEnum]
 
 
+export const TaskActivityScalarFieldEnum = {
+  id: 'id',
+  taskId: 'taskId',
+  actorId: 'actorId',
+  action: 'action',
+  message: 'message',
+  meta: 'meta',
+  createdAt: 'createdAt'
+} as const
+
+export type TaskActivityScalarFieldEnum = (typeof TaskActivityScalarFieldEnum)[keyof typeof TaskActivityScalarFieldEnum]
+
+
+export const TaskTemplateScalarFieldEnum = {
+  id: 'id',
+  boardId: 'boardId',
+  createdById: 'createdById',
+  name: 'name',
+  title: 'title',
+  description: 'description',
+  category: 'category',
+  priority: 'priority',
+  tags: 'tags',
+  recurrence: 'recurrence',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TaskTemplateScalarFieldEnum = (typeof TaskTemplateScalarFieldEnum)[keyof typeof TaskTemplateScalarFieldEnum]
+
+
 export const SubtaskScalarFieldEnum = {
   id: 'id',
   title: 'title',
@@ -257,6 +290,14 @@ export const SortOrder = {
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const NullableJsonNullValueInput = {
+  DbNull: DbNull,
+  JsonNull: JsonNull
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
 export const JsonNullValueInput = {

@@ -506,7 +506,7 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
                     className="grid gap-5 pb-6 items-start"
                 >
                     {filteredColumns.map((column) => (
-                        <BoardColumn key={column.id} column={column} boardId={initialBoard.id} userRole={userRole} members={initialBoard.members} currentUserEmail={currentUserEmail} />
+                        <BoardColumn key={column.id} column={column} boardId={initialBoard.id} userRole={userRole} members={initialBoard.members} templates={initialBoard.taskTemplates} currentUserEmail={currentUserEmail} />
                     ))}
                 </div>
 

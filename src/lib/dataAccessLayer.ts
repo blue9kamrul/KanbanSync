@@ -33,6 +33,9 @@ export const getBoardData = cache(async (boardId: string): Promise<BoardWithColu
         board = await prisma.board.findFirst({
             where: whereClause,
             include: {
+                taskTemplates: {
+                    orderBy: { updatedAt: 'desc' },
+                },
                 members: {
                     include: { user: true }
                 },
@@ -44,6 +47,10 @@ export const getBoardData = cache(async (boardId: string): Promise<BoardWithColu
                             include: {
                                 assignee: true,
                                 comments: { include: { user: true } },
+                                activities: {
+                                    orderBy: { createdAt: 'desc' },
+                                    include: { actor: true },
+                                },
                                 subtasks: { orderBy: { order: 'asc' } },
                                 attachments: { orderBy: { createdAt: 'desc' } },
                             }
@@ -56,7 +63,11 @@ export const getBoardData = cache(async (boardId: string): Promise<BoardWithColu
         const message = error instanceof Error ? error.message : String(error);
         const isStaleClient =
             message.includes('Unknown argument `subtasks`') ||
-            message.includes('Unknown argument `attachments`');
+            message.includes('Unknown argument `attachments`') ||
+            message.includes('Unknown argument `activities`') ||
+            message.includes('Unknown argument `taskTemplates`') ||
+            message.includes('task_templates') ||
+            message.includes('task_activities');
 
         if (!isStaleClient) throw error;
 
@@ -85,10 +96,12 @@ export const getBoardData = cache(async (boardId: string): Promise<BoardWithColu
         board = fallbackBoard
             ? {
                 ...fallbackBoard,
+                taskTemplates: [],
                 columns: fallbackBoard.columns.map((c) => ({
                     ...c,
                     tasks: c.tasks.map((t) => ({
                         ...t,
+                        activities: [],
                         subtasks: [],
                         attachments: [],
                     })),
