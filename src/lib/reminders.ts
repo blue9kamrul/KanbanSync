@@ -70,7 +70,12 @@ export async function dispatchPendingTaskRemindersForUser(userId: string, boardI
         const message = error instanceof Error ? error.message : String(error);
         // In dev, a stale Next.js server process can hold an old Prisma client shape.
         // We skip reminders instead of crashing the entire board page.
-        if (message.includes('Unknown argument `dueAt`') || message.includes('Unknown argument `reminderAt`')) {
+        const isStaleClientShape =
+            message.includes('Unknown argument') ||
+            message.includes('Unknown field') ||
+            message.includes('does not exist in type');
+
+        if (isStaleClientShape) {
             console.warn('Skipping reminders due to stale Prisma client in running dev server. Restart next dev to apply latest schema.');
             return;
         }

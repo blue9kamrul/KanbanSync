@@ -168,3 +168,17 @@
 .animate-tour-spotlight {
   animation: tour-spotlight-pulse 1.8s ease-out infinite;
 }
+
+.app-bg {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.09), transparent 35%),
+    radial-gradient(circle at 100% 0%, rgba(99, 102, 241, 0.08), transparent 30%),
+    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.app-surface {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(6px);
+}

@@ -31,13 +31,21 @@ export default async function BoardPage({
     }
 
     if (session.user.id) {
-        await dispatchPendingTaskRemindersForUser(session.user.id, boardId);
+        try {
+            await dispatchPendingTaskRemindersForUser(session.user.id, boardId);
+        } catch (error) {
+            console.warn('Skipping reminder dispatch for this request:', error);
+        }
     }
 
-    const [board, userRole] = await Promise.all([
+    const [board, userRoleRaw] = await Promise.all([
         getBoardData(boardId),
-        getUserRole(boardId),
+        getUserRole(boardId).catch((error) => {
+            console.warn('Failed to resolve user role for board page:', error);
+            return null;
+        }),
     ]);
+    const userRole = userRoleRaw;
 
     // Call notFound() here in the component — never inside Promise.all or the DAL.
     // Next.js can only intercept its special notFound/redirect errors when thrown
@@ -51,7 +59,7 @@ export default async function BoardPage({
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="min-h-screen app-bg flex flex-col">
             <BoardNavbar
                 board={board}
                 userRole={userRole}
@@ -63,7 +71,7 @@ export default async function BoardPage({
             />
 
             {/* Subheader: back button */}
-            <div className="bg-white border-b border-gray-100">
+            <div className="app-surface border-b border-gray-100">
                 <div className="px-6 py-3 flex items-center gap-3">
                     <Link
                         href="/"

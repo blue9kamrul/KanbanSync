@@ -29,7 +29,7 @@ export default async function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen app-bg flex flex-col">
       <DashboardNavbar
         userId={dbUser.id}
         userName={session.user.name}
@@ -47,7 +47,7 @@ export default async function Dashboard() {
         </div>
 
         {boards.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center" data-tour="dashboard-empty-state">
+          <div className="app-surface rounded-3xl flex flex-col items-center justify-center py-24 text-center" data-tour="dashboard-empty-state">
             <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mb-4">
               <svg viewBox="0 0 24 24" fill="none" className="w-8 h-8 text-blue-500" xmlns="http://www.w3.org/2000/svg">
                 <rect x="3" y="3" width="7" height="9" rx="1.5" fill="currentColor" opacity="0.9" />
