@@ -436,3 +436,66 @@ export async function updateTask(
         return { success: false, error: 'Failed to update task' };
     }
 }
+
+export async function restoreArchivedTasks(boardId: string, taskIds?: string[]) {
+    try {
+        const role = await getUserRole(boardId);
+        if (role !== BoardRole.LEADER && role !== BoardRole.REVIEWER) {
+            return { success: false, error: 'Unauthorized: Only Leaders and Reviewers can restore tasks.' };
+        }
+
+        const whereClause = {
+            status: 'ARCHIVED',
+            column: { boardId },
+            ...(taskIds && taskIds.length > 0 ? { id: { in: taskIds } } : {}),
+        };
+
+        const archivedTasks = await prisma.task.findMany({
+            where: whereClause,
+            select: {
+                id: true,
+                title: true,
+                column: { select: { title: true } },
+            },
+        });
+
+        if (archivedTasks.length === 0) {
+            return { success: true, restoredCount: 0 };
+        }
+
+        const ids = archivedTasks.map((t) => t.id);
+        const session = await auth();
+
+        await prisma.$transaction([
+            ...archivedTasks.map((task) =>
+                prisma.task.update({
+                    where: { id: task.id },
+                    data: {
+                        status: task.column?.title ?? 'To Do',
+                    },
+                })
+            ),
+            ...archivedTasks.map((task) =>
+                prisma.taskActivity.create({
+                    data: {
+                        taskId: task.id,
+                        action: TaskActivityType.UPDATED,
+                        actorId: session?.user?.id ?? null,
+                        message: `Restored task: ${task.title}`,
+                        meta: {
+                            restoredStatus: task.column?.title ?? 'To Do',
+                            restoredFromBulk: true,
+                        },
+                    },
+                })
+            ),
+        ]);
+
+        await pusherServer.trigger(`board-${boardId}`, 'board-updated', { message: 'Archived tasks restored' });
+        revalidatePath(`/board/${boardId}`);
+        return { success: true, restoredCount: ids.length };
+    } catch (error) {
+        console.error('Failed to restore archived tasks:', error);
+        return { success: false, error: 'Failed to restore archived tasks' };
+    }
+}

@@ -6,6 +6,17 @@ import { pusherServer } from '../lib/pusher-server';
 import { revalidatePath } from 'next/cache';
 import { auth } from '../../auth';
 
+async function getSessionUserId() {
+    const session = await auth();
+    if (!session?.user?.email) return null;
+
+    const dbUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true },
+    });
+    return dbUser?.id ?? null;
+}
+
 /**
  * Create a mention notification for a list of userIds.
  * This inserts an optional Notification row (if you add the model) and triggers
@@ -103,8 +114,8 @@ export async function declineInvite(inviteId: string) {
 }
 
 export async function getRecentNotifications(userId: string) {
-    const session = await auth();
-    if (!session?.user?.id || session.user.id !== userId) return [];
+    const sessionUserId = await getSessionUserId();
+    if (!sessionUserId || sessionUserId !== userId) return [];
 
     const rows = await prisma.notification.findMany({
         where: { userId },
@@ -114,6 +125,7 @@ export async function getRecentNotifications(userId: string) {
             id: true,
             type: true,
             data: true,
+            read: true,
             createdAt: true,
         },
     });
@@ -133,7 +145,43 @@ export async function getRecentNotifications(userId: string) {
             taskTitle: typeof data.taskTitle === 'string' ? data.taskTitle : undefined,
             inviterName: typeof data.inviterName === 'string' ? data.inviterName : null,
             role: typeof data.role === 'string' ? data.role : null,
+            read: row.read,
             createdAt: row.createdAt.toISOString(),
         };
     });
+}
+
+export async function markNotificationRead(notificationId: string) {
+    const sessionUserId = await getSessionUserId();
+    if (!sessionUserId) return { success: false, error: 'Unauthorized' };
+
+    const notification = await prisma.notification.findUnique({
+        where: { id: notificationId },
+        select: { userId: true },
+    });
+
+    if (!notification || notification.userId !== sessionUserId) {
+        return { success: false, error: 'Notification not found' };
+    }
+
+    await prisma.notification.update({
+        where: { id: notificationId },
+        data: { read: true },
+    });
+
+    return { success: true };
+}
+
+export async function markAllNotificationsRead(userId: string) {
+    const sessionUserId = await getSessionUserId();
+    if (!sessionUserId || sessionUserId !== userId) {
+        return { success: false, error: 'Unauthorized' };
+    }
+
+    await prisma.notification.updateMany({
+        where: { userId, read: false },
+        data: { read: true },
+    });
+
+    return { success: true };
 }

@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { getPusherClient } from '../../lib/pusher';
-import { acceptInvite, declineInvite, getRecentNotifications } from '../../actions/notificationActions';
+import {
+    acceptInvite,
+    declineInvite,
+    getRecentNotifications,
+    markAllNotificationsRead,
+    markNotificationRead,
+} from '../../actions/notificationActions';
 
 type NotificationItem = {
     id?: string;
@@ -17,6 +23,7 @@ type NotificationItem = {
     taskTitle?: string;
     inviterName?: string | null;
     role?: string | null;
+    read?: boolean;
     createdAt?: string;
 };
 
@@ -38,7 +45,9 @@ export default function NotificationsBell({ userId }: { userId: string }) {
     const [processing, setProcessing] = useState<Set<string>>(new Set());
     // Track the outcome to show a brief confirmation before removing
     const [results, setResults] = useState<Map<string, InviteResult>>(new Map());
+    const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
+    const unreadCount = items.filter((item) => !item.read).length;
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
@@ -64,7 +73,7 @@ export default function NotificationsBell({ userId }: { userId: string }) {
         const pusher = getPusherClient();
         const channel = pusher.subscribe(`user-${userId}`);
         const handleNotification = (data: NotificationItem) => {
-            setItems((s) => [data, ...s].slice(0, 20));
+            setItems((s) => [{ ...data, read: false }, ...s].slice(0, 20));
         };
         channel.bind('notification', handleNotification);
         channel.bind('invite-received', handleNotification);
@@ -124,6 +133,33 @@ export default function NotificationsBell({ userId }: { userId: string }) {
         }
     };
 
+    const handleMarkRead = async (item: NotificationItem, idx: number) => {
+        if (item.read) return;
+
+        setItems((s) => s.map((n, i) => i === idx ? { ...n, read: true } : n));
+
+        if (!item.id) return;
+        try {
+            await markNotificationRead(item.id);
+        } catch {
+            // Keep optimistic UI even if this fails.
+        }
+    };
+
+    const handleMarkAllRead = async () => {
+        if (unreadCount === 0 || isMarkingAllRead) return;
+        setIsMarkingAllRead(true);
+        setItems((s) => s.map((n) => ({ ...n, read: true })));
+
+        try {
+            await markAllNotificationsRead(userId);
+        } catch {
+            // Keep optimistic UI even if this fails.
+        } finally {
+            setIsMarkingAllRead(false);
+        }
+    };
+
     return (
         <div className="relative" ref={containerRef}>
             {/* Bell button */}
@@ -136,9 +172,9 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                     <path d="M15 17H9a3 3 0 006 0z" fill="currentColor" opacity="0.9" />
                     <path d="M12 2a6 6 0 00-6 6v3.586L4.293 14.293A1 1 0 005 16h14a1 1 0 00.707-1.707L18 11.586V8a6 6 0 00-6-6z" fill="currentColor" />
                 </svg>
-                {items.length > 0 && (
+                {unreadCount > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
-                        {items.length}
+                        {unreadCount}
                     </span>
                 )}
             </button>
@@ -149,7 +185,7 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                     <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                         <span className="text-sm font-semibold text-gray-900">Notifications</span>
                         {items.length > 0 && (
-                            <span className="text-xs text-gray-400">{items.length} new</span>
+                            <span className="text-xs text-gray-400">{unreadCount} unread</span>
                         )}
                     </div>
 
@@ -172,7 +208,7 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                             const isInvite = it.type === 'board-invite' && inviteId;
 
                             return (
-                                <div key={it.id ?? idx} className="px-4 py-3.5 hover:bg-gray-50 transition-colors">
+                                <div key={it.id ?? idx} className={`px-4 py-3.5 transition-colors ${it.read ? 'opacity-70 hover:bg-gray-50' : 'hover:bg-blue-50/40'}`}>
                                     {/* Icon + title row */}
                                     <div className="flex items-start gap-3">
                                         {/* Icon badge */}
@@ -263,6 +299,9 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                                             {it.excerpt && (
                                                 <p className="text-xs text-gray-400 mt-1 line-clamp-2 italic">&ldquo;{it.excerpt}&rdquo;</p>
                                             )}
+                                            {it.read && (
+                                                <p className="text-[11px] text-gray-400 mt-1">Read</p>
+                                            )}
                                         </div>
                                     </div>
 
@@ -320,12 +359,12 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                                                     </button>
                                                 </>
                                             )}
-                                            {!isInvite && (
+                                            {!isInvite && !it.read && (
                                                 <button
-                                                    onClick={() => setItems((s) => s.filter((_, i) => i !== idx))}
+                                                    onClick={() => handleMarkRead(it, idx)}
                                                     className="flex items-center gap-1 px-3 py-1.5 border border-gray-200 hover:bg-gray-100 text-gray-500 text-xs font-medium rounded-lg transition-colors"
                                                 >
-                                                    Dismiss
+                                                    Mark read
                                                 </button>
                                             )}
                                         </div>
@@ -335,14 +374,15 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                         })}
                     </div>
 
-                    {/* Footer — clear all */}
+                    {/* Footer — mark all read */}
                     {items.length > 0 && (
                         <div className="border-t border-gray-100 px-4 py-2.5">
                             <button
-                                onClick={() => setItems([])}
+                                onClick={handleMarkAllRead}
+                                disabled={unreadCount === 0 || isMarkingAllRead}
                                 className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
                             >
-                                Clear all notifications
+                                {isMarkingAllRead ? 'Marking all read...' : 'Mark all as read'}
                             </button>
                         </div>
                     )}

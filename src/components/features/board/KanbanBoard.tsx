@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition, useEffect } from 'react';
 import { useOptimistic } from 'react';
 import { BoardWithColumnsAndTasks } from '../../../types/board';
-import { moveTask, restoreTask } from '../../../actions/taskActions';
+import { moveTask, restoreTask, restoreArchivedTasks } from '../../../actions/taskActions';
 import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, closestCorners } from '@dnd-kit/core';
 import { useRouter } from 'next/navigation';
 import { getPusherClient } from '../../../lib/pusher';
@@ -55,6 +55,7 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [isViewsOpen, setIsViewsOpen] = useState(false);
     const [isArchiveOpen, setIsArchiveOpen] = useState(false);
+    const [archiveSearch, setArchiveSearch] = useState('');
     const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
     const [savedViews, setSavedViews] = useState<Array<{ id: string; name: string; filters: FilterState }>>(() => {
         if (typeof window === 'undefined') return [];
@@ -175,6 +176,13 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
         }),
         [allBoardTasks]
     );
+    const filteredArchivedTasks = useMemo(() => {
+        const q = archiveSearch.trim().toLowerCase();
+        if (!q) return archivedTasks;
+        return archivedTasks.filter((task) => {
+            return task.title.toLowerCase().includes(q) || task.category.toLowerCase().includes(q);
+        });
+    }, [archivedTasks, archiveSearch]);
 
     // The Real-Time Subscription
     useEffect(() => {
@@ -234,6 +242,19 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
             const result = await restoreTask(taskId, initialBoard.id);
             if (!result?.success) {
                 setToastMessage(result?.error ?? 'Failed to restore task.');
+            }
+        });
+    };
+
+    const handleRestoreVisibleArchivedTasks = () => {
+        if (filteredArchivedTasks.length === 0) return;
+        startRestoreTaskTransition(async () => {
+            const result = await restoreArchivedTasks(initialBoard.id, filteredArchivedTasks.map((task) => task.id));
+            if (!result?.success) {
+                setToastMessage(result?.error ?? 'Failed to restore archived tasks.');
+            }
+            if (result?.success && (result.restoredCount ?? 0) > 0) {
+                setToastMessage(`Restored ${result.restoredCount} archived task${result.restoredCount === 1 ? '' : 's'}.`);
             }
         });
     };
@@ -629,7 +650,10 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
                 {canManageArchive && (
                     <div className="relative">
                         <button
-                            onClick={() => setIsArchiveOpen((o) => !o)}
+                            onClick={() => {
+                                setArchiveSearch('');
+                                setIsArchiveOpen((o) => !o);
+                            }}
                             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/90 border border-slate-300 shadow-sm hover:bg-white hover:border-slate-400 transition-all text-sm font-medium text-gray-700 whitespace-nowrap"
                         >
                             Archived
@@ -638,13 +662,37 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
 
                         {isArchiveOpen && (
                             <div className="absolute top-full mt-2 left-0 z-40 w-80 app-bg rounded-xl border border-slate-200 shadow-xl p-2">
+                                {archivedTasks.length > 0 && (
+                                    <div className="px-2 pb-2 border-b border-slate-200 mb-2 space-y-2">
+                                        <input
+                                            type="text"
+                                            value={archiveSearch}
+                                            onChange={(e) => setArchiveSearch(e.target.value)}
+                                            placeholder="Search archived tasks..."
+                                            className="w-full px-2.5 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 placeholder-slate-400 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleRestoreVisibleArchivedTasks}
+                                            disabled={isRestoringTask || filteredArchivedTasks.length === 0}
+                                            className="w-full text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1.5 rounded-md hover:bg-emerald-100 disabled:opacity-50"
+                                        >
+                                            Restore all visible ({filteredArchivedTasks.length})
+                                        </button>
+                                    </div>
+                                )}
+
                                 {archivedTasks.length === 0 ? (
                                     <div className="px-2 py-2 space-y-1">
                                         <p className="text-xs text-slate-500">No archived tasks.</p>
                                         <p className="text-[11px] text-slate-400">Archive a task from its card to keep the board clean without losing history.</p>
                                     </div>
+                                ) : filteredArchivedTasks.length === 0 ? (
+                                    <div className="px-2 py-2 space-y-1">
+                                        <p className="text-xs text-slate-500">No archived tasks match your search.</p>
+                                    </div>
                                 ) : (
-                                    archivedTasks.map((task) => (
+                                    filteredArchivedTasks.map((task) => (
                                         <div key={task.id} className="flex items-start justify-between gap-2 px-2 py-2 rounded-lg hover:bg-white/80">
                                             <div className="min-w-0">
                                                 <p className="text-xs font-semibold text-slate-700 truncate">{task.title}</p>
