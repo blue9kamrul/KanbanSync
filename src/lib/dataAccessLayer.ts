@@ -18,7 +18,6 @@ export const getBoardData = cache(async (boardId: string): Promise<BoardWithColu
     if (!dbUser) return null;
 
     // Fetch the board AND verify ownership simultaneously
-    console.log('[DAL] getBoardData: boardId=', boardId, 'sessionEmail=', session.user.email);
     const board = await prisma.board.findFirst({
         where: {
             id: boardId,
@@ -50,7 +49,6 @@ export const getBoardData = cache(async (boardId: string): Promise<BoardWithColu
     });
 
     if (!board) return null;
-    console.log('[DAL] getBoardData: found board=', !!board);
 
     return board;
 });

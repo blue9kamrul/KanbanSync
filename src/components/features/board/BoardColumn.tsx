@@ -24,7 +24,6 @@ function getColumnAccent(title: string): { dot: string; header: string } {
 }
 
 export default memo(function BoardColumn({ column, boardId, userRole, members, currentUserEmail }: { column: ColumnWithTasks; boardId?: string; userRole?: string | null; members?: MemberType[]; currentUserEmail?: string | null }) {
-    console.log("Rendering Column:", column.id);
     const effectiveBoardId = boardId ?? column.boardId;
 
     const { setNodeRef } = useDroppable({

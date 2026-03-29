@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import GuidedTour, { GuidedTourStep } from './GuidedTour';
 
@@ -12,6 +12,13 @@ interface DashboardOnboardingTourProps {
 
 export default function DashboardOnboardingTour({ userId, firstBoardId, boardCount }: DashboardOnboardingTourProps) {
     const router = useRouter();
+    const [forceStartToken, setForceStartToken] = useState(0);
+
+    useEffect(() => {
+        const handler = () => setForceStartToken((prev) => prev + 1);
+        window.addEventListener('ks-open-dashboard-tour', handler as EventListener);
+        return () => window.removeEventListener('ks-open-dashboard-tour', handler as EventListener);
+    }, []);
 
     const steps = useMemo<GuidedTourStep[]>(() => {
         const hasBoards = boardCount > 0;
@@ -52,10 +59,10 @@ export default function DashboardOnboardingTour({ userId, firstBoardId, boardCou
             storageKey="dashboard-onboarding-v1"
             tourName="Dashboard Tour"
             steps={steps}
+            forceStartToken={forceStartToken}
             finishLabel={firstBoardId ? 'Open board tour' : 'Finish'}
             onFinish={() => {
                 if (firstBoardId) {
-                    sessionStorage.setItem('ks-board-tour-pending', '1');
                     router.push(`/board/${firstBoardId}?tour=1`);
                 }
             }}

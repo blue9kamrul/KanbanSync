@@ -66,6 +66,20 @@ export default function DashboardNavbar({
                 {/* ── Right actions ────────────────────── */}
                 <div className="flex items-center gap-2 ml-auto">
 
+                    <button
+                        type="button"
+                        onClick={() => window.dispatchEvent(new Event('ks-open-dashboard-tour'))}
+                        className="flex items-center gap-1.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium px-3 py-2 rounded-lg transition-colors"
+                        aria-label="Start dashboard tutorial"
+                    >
+                        <svg className="w-4 h-4 text-cyan-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 3l8.5 4.5v9L12 21 3.5 16.5v-9L12 3z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                            <path d="M12 8.5v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                            <circle cx="12" cy="15.8" r="1" fill="currentColor" />
+                        </svg>
+                        <span className="hidden sm:inline">Tutorial</span>
+                    </button>
+
                     {/* Create Board */}
                     <CreateBoardModal />
 

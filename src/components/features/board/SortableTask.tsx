@@ -2,7 +2,7 @@
 
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { memo, useState, useTransition } from 'react';
+import { memo, useEffect, useState, useTransition } from 'react';
 import type { TaskCategory } from '../../../generated/prisma/browser';
 import { deleteTask } from '@/src/actions/taskActions';
 // EditTaskModal replaced by TaskDetailsModal for unified edit flow
@@ -83,9 +83,28 @@ function AssigneeAvatar({ name }: { name?: string | null }) {
 
 export default memo(function SortableTask({ task, boardId, members, currentUserEmail
 }: { task: TaskType; boardId: string; members?: MemberType[]; currentUserEmail?: string | null }) {
-    console.log("Rendering Task:", task.id);
-
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+    useEffect(() => {
+        const openFromTour = (event: Event) => {
+            const custom = event as CustomEvent<{ taskId?: string }>;
+            if (custom.detail?.taskId === task.id) {
+                setIsDetailsOpen(true);
+            }
+        };
+
+        const closeFromTour = () => {
+            setIsDetailsOpen(false);
+        };
+
+        window.addEventListener('ks-tour-open-task-details', openFromTour as EventListener);
+        window.addEventListener('ks-tour-close-task-details', closeFromTour);
+
+        return () => {
+            window.removeEventListener('ks-tour-open-task-details', openFromTour as EventListener);
+            window.removeEventListener('ks-tour-close-task-details', closeFromTour);
+        };
+    }, [task.id]);
 
     // Derive whether the current user is a Leader — only Leaders can delete tasks
     const isLeader = members?.some(

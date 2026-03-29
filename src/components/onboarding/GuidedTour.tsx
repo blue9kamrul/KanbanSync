@@ -22,7 +22,9 @@ interface GuidedTourProps {
     tourName: string;
     steps: GuidedTourStep[];
     forceStart?: boolean;
+    forceStartToken?: number;
     finishLabel?: string;
+    onStepChange?: (stepIndex: number, step: GuidedTourStep) => void;
     onFinish?: () => void;
 }
 
@@ -36,7 +38,9 @@ export default function GuidedTour({
     tourName,
     steps,
     forceStart = false,
+    forceStartToken = 0,
     finishLabel = 'Finish tour',
+    onStepChange,
     onFinish,
 }: GuidedTourProps) {
     const [isOpen, setIsOpen] = useState(false);
@@ -50,11 +54,14 @@ export default function GuidedTour({
     useEffect(() => {
         if (!userId) return;
         const done = localStorage.getItem(fullStorageKey) === 'done';
-        if (forceStart || !done) {
-            const openTimer = window.setTimeout(() => setIsOpen(true), 0);
+        if (forceStart || forceStartToken > 0 || !done) {
+            const openTimer = window.setTimeout(() => {
+                setStepIndex(0);
+                setIsOpen(true);
+            }, 0);
             return () => window.clearTimeout(openTimer);
         }
-    }, [forceStart, fullStorageKey, userId]);
+    }, [forceStart, forceStartToken, fullStorageKey, userId]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -66,13 +73,15 @@ export default function GuidedTour({
     }, [isOpen]);
 
     useEffect(() => {
-        if (!isOpen || !step?.selector) {
+        const selector = step?.selector;
+
+        if (!isOpen || !selector) {
             const clearTimer = window.setTimeout(() => setTargetRect(null), 0);
             return () => window.clearTimeout(clearTimer);
         }
 
         const updateRect = () => {
-            const target = document.querySelector(step.selector) as HTMLElement | null;
+            const target = document.querySelector(selector) as HTMLElement | null;
             if (!target) {
                 setTargetRect(null);
                 return;
@@ -99,6 +108,11 @@ export default function GuidedTour({
         };
     }, [isOpen, step]);
 
+    useEffect(() => {
+        if (!isOpen || !step) return;
+        onStepChange?.(stepIndex, step);
+    }, [isOpen, onStepChange, step, stepIndex]);
+
     const completeTour = useCallback(() => {
         localStorage.setItem(fullStorageKey, 'done');
         setIsOpen(false);
@@ -121,7 +135,7 @@ export default function GuidedTour({
     if (!isOpen || !step) return null;
 
     return (
-        <div className="fixed inset-0 z-[120] pointer-events-none">
+        <div className="fixed inset-0 z-120 pointer-events-none">
             <div className="absolute inset-0 bg-slate-950/65 backdrop-blur-[1px] animate-tour-fade" />
 
             {targetRect && (

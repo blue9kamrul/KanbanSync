@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import GuidedTour, { GuidedTourStep } from './GuidedTour';
 
 interface BoardOnboardingTourProps {
@@ -9,6 +9,14 @@ interface BoardOnboardingTourProps {
 }
 
 export default function BoardOnboardingTour({ userId, forceStart = false }: BoardOnboardingTourProps) {
+    const [forceStartToken, setForceStartToken] = useState(0);
+
+    useEffect(() => {
+        const handler = () => setForceStartToken((prev) => prev + 1);
+        window.addEventListener('ks-open-board-tour', handler as EventListener);
+        return () => window.removeEventListener('ks-open-board-tour', handler as EventListener);
+    }, []);
+
     const steps = useMemo<GuidedTourStep[]>(() => ([
         {
             title: 'Board workspace overview',
@@ -66,6 +74,17 @@ export default function BoardOnboardingTour({ userId, forceStart = false }: Boar
         },
     ]), []);
 
+    const handleStepChange = useCallback((stepIndex: number) => {
+        const isDetailsRange = stepIndex >= 5 && stepIndex <= 7;
+
+        if (isDetailsRange) {
+            window.dispatchEvent(new Event('ks-tour-request-open-task-details'));
+            return;
+        }
+
+        window.dispatchEvent(new Event('ks-tour-close-task-details'));
+    }, []);
+
     return (
         <GuidedTour
             userId={userId}
@@ -73,9 +92,11 @@ export default function BoardOnboardingTour({ userId, forceStart = false }: Boar
             tourName="Board Feature Tour"
             steps={steps}
             forceStart={forceStart}
+            forceStartToken={forceStartToken}
             finishLabel="Start working"
+            onStepChange={handleStepChange}
             onFinish={() => {
-                sessionStorage.removeItem('ks-board-tour-pending');
+                window.dispatchEvent(new Event('ks-tour-close-task-details'));
             }}
         />
     );

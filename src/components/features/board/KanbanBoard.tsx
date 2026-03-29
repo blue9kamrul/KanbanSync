@@ -236,6 +236,22 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
         });
     }, [optimisticColumns, searchQuery, filters, filterNow]);
 
+    useEffect(() => {
+        const openFirstTaskDetails = () => {
+            const firstTask = filteredColumns.find((c) => c.tasks.length > 0)?.tasks[0];
+            if (!firstTask) return;
+
+            window.dispatchEvent(new CustomEvent('ks-tour-open-task-details', {
+                detail: { taskId: firstTask.id }
+            }));
+        };
+
+        window.addEventListener('ks-tour-request-open-task-details', openFirstTaskDetails as EventListener);
+        return () => {
+            window.removeEventListener('ks-tour-request-open-task-details', openFirstTaskDetails as EventListener);
+        };
+    }, [filteredColumns]);
+
     // Handle Drag Start
     const handleDragStart = (event: DragStartEvent) => {
         const { active } = event;
