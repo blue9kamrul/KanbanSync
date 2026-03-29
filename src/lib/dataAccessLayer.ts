@@ -17,38 +17,85 @@ export const getBoardData = cache(async (boardId: string): Promise<BoardWithColu
     const dbUser = await prisma.user.findUnique({ where: { email: session.user.email } });
     if (!dbUser) return null;
 
-    // Fetch the board AND verify ownership simultaneously
-    const board = await prisma.board.findFirst({
-        where: {
-            id: boardId,
-            // SECURITY: Ensure the user is EITHER the creator OR in the members array
-            OR: [
-                { userId: dbUser.id },
-                { members: { some: { userId: dbUser.id } } }
-            ]
-        },
-        include: {
-            // Include the members so we can check their roles in the UI later
-            members: {
-                include: { user: true }
-            },
-            columns: {
-                orderBy: { order: 'asc' },
-                include: {
-                    tasks: {
-                        orderBy: { order: 'asc' },
-                        // Include assignees and comments for the new UI
-                        include: {
-                            assignee: true,
-                            comments: { include: { user: true } },
-                            subtasks: { orderBy: { order: 'asc' } },
-                            attachments: { orderBy: { createdAt: 'desc' } },
-                        }
+    const whereClause = {
+        id: boardId,
+        // SECURITY: Ensure the user is EITHER the creator OR in the members array
+        OR: [
+            { userId: dbUser.id },
+            { members: { some: { userId: dbUser.id } } }
+        ]
+    };
+
+    // Fetch the board with extended task relations.
+    // If the running dev server has a stale Prisma client, fall back gracefully.
+    let board: BoardWithColumnsAndTasks | null = null;
+    try {
+        board = await prisma.board.findFirst({
+            where: whereClause,
+            include: {
+                members: {
+                    include: { user: true }
+                },
+                columns: {
+                    orderBy: { order: 'asc' },
+                    include: {
+                        tasks: {
+                            orderBy: { order: 'asc' },
+                            include: {
+                                assignee: true,
+                                comments: { include: { user: true } },
+                                subtasks: { orderBy: { order: 'asc' } },
+                                attachments: { orderBy: { createdAt: 'desc' } },
+                            }
+                        },
                     },
                 },
             },
-        },
-    });
+        });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const isStaleClient =
+            message.includes('Unknown argument `subtasks`') ||
+            message.includes('Unknown argument `attachments`');
+
+        if (!isStaleClient) throw error;
+
+        const fallbackBoard = await prisma.board.findFirst({
+            where: whereClause,
+            include: {
+                members: {
+                    include: { user: true }
+                },
+                columns: {
+                    orderBy: { order: 'asc' },
+                    include: {
+                        tasks: {
+                            orderBy: { order: 'asc' },
+                            include: {
+                                assignee: true,
+                                comments: { include: { user: true } },
+                            }
+                        },
+                    },
+                },
+            },
+        });
+
+        // Normalize missing relations so UI components can render safely.
+        board = fallbackBoard
+            ? {
+                ...fallbackBoard,
+                columns: fallbackBoard.columns.map((c) => ({
+                    ...c,
+                    tasks: c.tasks.map((t) => ({
+                        ...t,
+                        subtasks: [],
+                        attachments: [],
+                    })),
+                })),
+            } as BoardWithColumnsAndTasks
+            : null;
+    }
 
     if (!board) return null;
 
