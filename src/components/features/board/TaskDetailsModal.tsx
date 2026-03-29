@@ -284,7 +284,7 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     {/* Description */}
                     <div className="mb-4 app-surface rounded-2xl border border-slate-200/70 p-4">
                         <div className="flex items-center justify-between mb-1.5">
-                            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Description</h3>
+                            <h3 className="text-xs font-bold text-slate-700 uppercase tracking-[0.16em] flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />Description</h3>
                             <span className={`text-[11px] transition-opacity duration-300 ${saved ? 'text-green-500 opacity-100' : 'opacity-0'}`}>
                                 ✓ Saved
                             </span>
@@ -306,7 +306,7 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     {/* Subtasks */}
                     <div className="mb-4 app-surface rounded-2xl border border-slate-200/70 p-4">
                         <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Checklist</h3>
+                            <h3 className="text-xs font-bold text-slate-700 uppercase tracking-[0.16em] flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-blue-500" />Checklist</h3>
                             <span className="text-[11px] text-gray-500">{doneSubtasks}/{subtasks.length} done</span>
                         </div>
 
@@ -368,7 +368,7 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
 
                     {/* Attachments */}
                     <div className="mb-4 app-surface rounded-2xl border border-slate-200/70 p-4">
-                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Attachments</h3>
+                        <h3 className="text-xs font-bold text-slate-700 uppercase tracking-[0.16em] flex items-center gap-2 mb-2"><span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />Attachments</h3>
 
                         <div className="space-y-2 mb-3 max-h-44 min-h-24 overflow-y-auto pr-1.5">
                             {attachments.length === 0 && (
@@ -429,11 +429,11 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     </div>
 
                     {/* Activity */}
-                    <div className="flex flex-col app-surface rounded-2xl border border-slate-200/70 p-4 min-h-[24rem]">
-                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Activity</h3>
+                    <div className="flex flex-col app-surface rounded-2xl border border-slate-200/70 p-4 min-h-[24rem] overflow-hidden pb-4">
+                        <h3 className="text-xs font-bold text-slate-700 uppercase tracking-[0.16em] mb-3 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Activity</h3>
 
                         {/* Comment list */}
-                        <div className="overflow-y-auto space-y-3 mb-4 bg-slate-50 rounded-2xl p-5 border border-slate-200/80 min-h-[18rem] max-h-[22rem]">
+                        <div className="overflow-y-auto space-y-3 mb-4 bg-slate-50 rounded-2xl p-5 border border-slate-200/80 min-h-[19rem] max-h-[23rem]">
                             {timeline.length === 0 && (
                                 <div className="flex flex-col items-center justify-center h-full py-12 gap-3 text-center">
                                     <svg className="w-14 h-14 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -481,10 +481,10 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                         </div>
 
                         {/* Comment input */}
-                        <div className="relative flex items-center gap-2.5 pb-1">
+                        <div className="relative flex items-center gap-2.5 pb-2 pt-1">
                             {/* @mention dropdown */}
                             {mentionQuery !== null && mentionSuggestions.length > 0 && (
-                                <div className="absolute bottom-full mb-1.5 left-9 right-0 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                                <div className="absolute bottom-full mb-1.5 left-0 right-0 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
                                     <div className="px-3 py-1.5 border-b border-gray-100">
                                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Mention a member</span>
                                     </div>

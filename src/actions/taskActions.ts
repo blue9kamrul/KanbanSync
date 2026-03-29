@@ -288,6 +288,10 @@ export async function createTask(
 
 export async function deleteTask(taskId: string, boardId: string) {
     try {
+        const role = await getUserRole(boardId);
+        if (role !== BoardRole.LEADER) {
+            return { success: false, error: 'Unauthorized: Only Leaders can delete tasks.' };
+        }
         const task = await prisma.task.findUnique({ where: { id: taskId }, select: { title: true } });
 
         await logTaskActivity({
@@ -320,6 +324,10 @@ export async function updateTask(
     recurrence?: string,
 ) {
     try {
+        const role = await getUserRole(boardId);
+        if (role !== BoardRole.LEADER && role !== BoardRole.REVIEWER) {
+            return { success: false, error: 'Unauthorized: insufficient role' };
+        }
         const session = await auth();
         await prisma.task.update({
             where: { id: taskId },

@@ -5,7 +5,7 @@ import Link from 'next/link';
 export default function Error({ reset }: { error: Error; reset: () => void }) {
     return (
         <main className="min-h-screen app-bg text-slate-900 flex items-center justify-center p-6">
-            <div className="w-full max-w-2xl rounded-3xl app-surface overflow-hidden">
+            <div className="w-full max-w-2xl rounded-3xl app-surface overflow-hidden anim-panel-in">
                 <div className="p-8 sm:p-10">
                     <p className="text-xs tracking-[0.22em] uppercase text-cyan-700 font-semibold mb-3">KanbanSync</p>
                     <h1 className="text-3xl sm:text-4xl font-black leading-tight mb-3 text-slate-900">Something went wrong while loading this page.</h1>
@@ -17,13 +17,13 @@ export default function Error({ reset }: { error: Error; reset: () => void }) {
                     <div className="mt-8 flex flex-wrap items-center gap-3">
                         <button
                             onClick={reset}
-                            className="px-5 py-2.5 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-colors"
+                            className="ui-btn-primary"
                         >
                             Try Again
                         </button>
                         <Link
                             href="/"
-                            className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold hover:bg-slate-100 transition-colors"
+                            className="ui-btn-secondary"
                         >
                             Back To Boards
                         </Link>

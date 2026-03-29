@@ -42,6 +42,17 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
     const [isMetricsOpen, setIsMetricsOpen] = useState(false);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+    const [savedViews, setSavedViews] = useState<Array<{ id: string; name: string; filters: FilterState }>>(() => {
+        if (typeof window === 'undefined') return [];
+        try {
+            const raw = localStorage.getItem(`ks-filter-views-${initialBoard.id}`);
+            if (!raw) return [];
+            const parsed = JSON.parse(raw) as Array<{ id: string; name: string; filters: FilterState }>;
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    });
     // Stable "now" timestamp for age-filter comparisons (refreshed each time the filter panel opens)
     const [filterNow, setFilterNow] = useState(() => Date.now());
 
@@ -111,6 +122,10 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
     const [isPending, startTransition] = useTransition();
 
     // The Real-Time Subscription
+    useEffect(() => {
+        localStorage.setItem(`ks-filter-views-${initialBoard.id}`, JSON.stringify(savedViews));
+    }, [initialBoard.id, savedViews]);
+
     useEffect(() => {
         const pusher = getPusherClient();
         const channelName = `board-${initialBoard.id}`;
@@ -422,6 +437,20 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
                         filters={filters}
                         onChange={setFilters}
                         members={initialBoard.members}
+                        savedViews={savedViews}
+                        onSaveView={(name, currentFilters) => {
+                            const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+                            setSavedViews((prev) => [{ id, name, filters: { ...currentFilters } }, ...prev].slice(0, 12));
+                        }}
+                        onApplyView={(viewId) => {
+                            const view = savedViews.find((v) => v.id === viewId);
+                            if (!view) return;
+                            setFilters({ ...view.filters });
+                            setFilterNow(Date.now());
+                        }}
+                        onDeleteView={(viewId) => {
+                            setSavedViews((prev) => prev.filter((v) => v.id !== viewId));
+                        }}
                     />
                 </div>
 

@@ -7,6 +7,8 @@ import { revalidatePath } from 'next/cache';
 import { pusherServer } from '../lib/pusher-server';
 import { TaskActivityType } from '../generated/prisma/client';
 import { logTaskActivity } from '../lib/activity';
+import { getUserRole } from '../lib/permission';
+import { BoardRole } from '../generated/prisma/enums';
 
 export async function addComment(taskId: string, boardId: string, text: string) {
     const session = await auth();
@@ -87,6 +89,10 @@ export async function addComment(taskId: string, boardId: string, text: string) 
 
 export async function updateTaskDescription(taskId: string, boardId: string, description: string) {
     try {
+        const role = await getUserRole(boardId);
+        if (role !== BoardRole.LEADER && role !== BoardRole.REVIEWER) {
+            return { success: false, error: 'Unauthorized: insufficient role' };
+        }
         const session = await auth();
         await prisma.task.update({
             where: { id: taskId },
@@ -109,6 +115,10 @@ export async function updateTaskDescription(taskId: string, boardId: string, des
 
 export async function assignTask(taskId: string, boardId: string, assigneeId: string) {
     try {
+        const role = await getUserRole(boardId);
+        if (role !== BoardRole.LEADER && role !== BoardRole.REVIEWER) {
+            return { success: false, error: 'Unauthorized: insufficient role' };
+        }
         const session = await auth();
         const [task, board] = await Promise.all([
             prisma.task.findUnique({ where: { id: taskId }, select: { title: true } }),
@@ -151,6 +161,10 @@ export async function assignTask(taskId: string, boardId: string, assigneeId: st
 export async function addSubtask(taskId: string, boardId: string, title: string) {
     if (!title.trim()) return { success: false, error: 'Title is required' };
     try {
+        const role = await getUserRole(boardId);
+        if (role !== BoardRole.LEADER && role !== BoardRole.REVIEWER) {
+            return { success: false, error: 'Unauthorized: insufficient role' };
+        }
         const last = await prisma.subtask.findFirst({
             where: { taskId },
             orderBy: { order: 'desc' },
@@ -209,6 +223,10 @@ export async function toggleSubtask(subtaskId: string, boardId: string, done: bo
 
 export async function deleteSubtask(subtaskId: string, boardId: string) {
     try {
+        const role = await getUserRole(boardId);
+        if (role !== BoardRole.LEADER && role !== BoardRole.REVIEWER) {
+            return { success: false, error: 'Unauthorized: insufficient role' };
+        }
         const subtask = await prisma.subtask.findUnique({ where: { id: subtaskId } });
         await prisma.subtask.delete({ where: { id: subtaskId } });
 
@@ -234,6 +252,10 @@ export async function deleteSubtask(subtaskId: string, boardId: string) {
 export async function addTaskAttachment(taskId: string, boardId: string, name: string, url: string) {
     if (!name.trim() || !url.trim()) return { success: false, error: 'Name and URL are required' };
     try {
+        const role = await getUserRole(boardId);
+        if (role !== BoardRole.LEADER && role !== BoardRole.REVIEWER) {
+            return { success: false, error: 'Unauthorized: insufficient role' };
+        }
         const attachment = await prisma.attachment.create({
             data: {
                 taskId,
@@ -262,6 +284,10 @@ export async function addTaskAttachment(taskId: string, boardId: string, name: s
 
 export async function deleteTaskAttachment(attachmentId: string, boardId: string) {
     try {
+        const role = await getUserRole(boardId);
+        if (role !== BoardRole.LEADER && role !== BoardRole.REVIEWER) {
+            return { success: false, error: 'Unauthorized: insufficient role' };
+        }
         const attachment = await prisma.attachment.findUnique({ where: { id: attachmentId } });
         await prisma.attachment.delete({ where: { id: attachmentId } });
 

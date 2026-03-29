@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, ReactNode } from 'react';
+import { useRef, useEffect, ReactNode, useState } from 'react';
 
 // ─── Category meta ─────────────────────────────────────────────────────────────
 export const TASK_CATEGORIES = [
@@ -82,6 +82,10 @@ interface FilterPanelProps {
     filters: FilterState;
     onChange: (f: FilterState) => void;
     members: FilterMember[];
+    savedViews: Array<{ id: string; name: string; filters: FilterState }>;
+    onSaveView: (name: string, filters: FilterState) => void;
+    onApplyView: (viewId: string) => void;
+    onDeleteView: (viewId: string) => void;
 }
 
 // ─── Tiny helpers ───────────────────────────────────────────────────────────────
@@ -102,8 +106,9 @@ function Divider() {
 }
 
 // ─── Main component ─────────────────────────────────────────────────────────────
-export default function FilterPanel({ isOpen, onClose, filters, onChange, members }: FilterPanelProps) {
+export default function FilterPanel({ isOpen, onClose, filters, onChange, members, savedViews, onSaveView, onApplyView, onDeleteView }: FilterPanelProps) {
     const panelRef = useRef<HTMLDivElement>(null);
+    const [viewName, setViewName] = useState('');
 
     // Close on outside click
     useEffect(() => {
@@ -219,6 +224,57 @@ export default function FilterPanel({ isOpen, onClose, filters, onChange, member
 
             {/* Scrollable body */}
             <div className="overflow-y-auto p-4 flex-1">
+
+                {/* ── Saved Views ── */}
+                <SectionLabel>Saved Views</SectionLabel>
+                <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="text"
+                            value={viewName}
+                            onChange={(e) => setViewName(e.target.value)}
+                            placeholder="View name"
+                            className="ui-field py-1.5 text-xs"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (!viewName.trim()) return;
+                                onSaveView(viewName.trim(), filters);
+                                setViewName('');
+                            }}
+                            className="ui-btn-primary px-3 py-1.5 text-xs"
+                        >
+                            Save
+                        </button>
+                    </div>
+
+                    {savedViews.length > 0 && (
+                        <div className="flex flex-col gap-1.5">
+                            {savedViews.map((view) => (
+                                <div key={view.id} className="flex items-center justify-between gap-2 bg-white/85 border border-slate-200 rounded-xl px-2.5 py-1.5">
+                                    <button
+                                        type="button"
+                                        onClick={() => onApplyView(view.id)}
+                                        className="text-xs font-medium text-slate-700 hover:text-cyan-700 truncate text-left"
+                                    >
+                                        {view.name}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => onDeleteView(view.id)}
+                                        className="text-[11px] text-slate-400 hover:text-red-600"
+                                        aria-label={`Delete ${view.name} view`}
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <Divider />
 
                 {/* ── Sort By ── */}
                 <SectionLabel>Sort By</SectionLabel>
