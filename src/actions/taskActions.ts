@@ -23,7 +23,11 @@ export async function moveTask(
     taskId: string,
     newColumnId: string,
     newOrder: number,
-    boardId: string
+    boardId: string,
+    options?: {
+        overrideBlockedDependency?: boolean;
+        overrideReason?: string;
+    }
 ) {
     const session = await auth();
     const role = await getUserRole(boardId);
@@ -51,6 +55,53 @@ export async function moveTask(
         // Fetch source column to know if the task is currently in Done
         const sourceColumn = await prisma.column.findUnique({ where: { id: existingTask.columnId } });
         const sourceIsDone = /done|complete/i.test(sourceColumn?.title ?? '');
+        const targetType = targetColumn.title.toLowerCase();
+        const movingIntoDone = !sourceIsDone && (targetType.includes('done') || targetType.includes('complete') || targetType.includes('completed'));
+
+        if (movingIntoDone) {
+            const dependencies = await prisma.taskDependency.findMany({
+                where: { taskId },
+                include: {
+                    dependsOn: {
+                        include: {
+                            column: {
+                                select: { title: true },
+                            },
+                        },
+                    },
+                },
+            });
+
+            const openBlockers = dependencies.filter((dep) => {
+                const blockerStatus = (dep.dependsOn.status ?? '').toLowerCase();
+                const blockerColumn = (dep.dependsOn.column?.title ?? '').toLowerCase();
+                const blockerCompleted = blockerStatus.includes('done') || blockerStatus.includes('complete') || blockerColumn.includes('done') || blockerColumn.includes('complete');
+                return !blockerCompleted;
+            });
+
+            if (openBlockers.length > 0) {
+                const canOverride = role === BoardRole.LEADER || role === BoardRole.REVIEWER;
+                const requestedOverride = !!options?.overrideBlockedDependency;
+
+                if (!requestedOverride || !canOverride) {
+                    return {
+                        success: false,
+                        code: 'BLOCKED_TASK',
+                        error: 'Task has unfinished dependencies and cannot be moved to Done.',
+                        blockers: openBlockers.map((dep) => dep.dependsOn.title),
+                        canOverride,
+                    };
+                }
+
+                if (!options?.overrideReason || !options.overrideReason.trim()) {
+                    return {
+                        success: false,
+                        code: 'OVERRIDE_REASON_REQUIRED',
+                        error: 'Override reason is required to move a blocked task to Done.',
+                    };
+                }
+            }
+        }
 
         // GUARD: MEMBERs can't move tasks INTO Done, and can't move tasks OUT of Done
         if (role === BoardRole.MEMBER) {
@@ -75,7 +126,6 @@ export async function moveTask(
             status: targetColumn.title,
         };
 
-        const targetType = targetColumn.title.toLowerCase();
         // Use source column classification — not completedAt — so tasks moved to Done
         // before the timestamp migration was run are also handled correctly.
         const wasDone = sourceIsDone;
@@ -105,7 +155,7 @@ export async function moveTask(
             updateData.completedAt = null;
         }
 
-        const movingIntoDone = !wasDone && (targetType.includes('done') || targetType.includes('complete') || targetType.includes('completed'));
+        const appliedDependencyOverride = movingIntoDone && !!options?.overrideBlockedDependency && !!options?.overrideReason?.trim();
 
         try {
             await prisma.task.update({ where: { id: taskId }, data: updateData });
@@ -123,10 +173,13 @@ export async function moveTask(
             taskId,
             action: TaskActivityType.MOVED,
             actorId: session?.user?.id,
-            message: `Moved task from ${sourceColumn?.title ?? 'Unknown'} to ${targetColumn.title}`,
+            message: appliedDependencyOverride
+                ? `Moved task from ${sourceColumn?.title ?? 'Unknown'} to ${targetColumn.title} with dependency override`
+                : `Moved task from ${sourceColumn?.title ?? 'Unknown'} to ${targetColumn.title}`,
             meta: {
                 from: sourceColumn?.title ?? null,
                 to: targetColumn.title,
+                dependencyOverrideReason: appliedDependencyOverride ? options?.overrideReason?.trim() : null,
             },
         });
 

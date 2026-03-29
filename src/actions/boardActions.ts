@@ -14,27 +14,33 @@ const BOARD_TEMPLATE_COLUMNS: Record<string, Array<{ title: string; order: numbe
         { title: 'Review', order: 3 },
         { title: 'Done', order: 4 },
     ],
-    PRODUCT: [
+    SPRINT: [
+        { title: 'Sprint Backlog', order: 0 },
+        { title: 'In Progress', order: 1, wipLimit: 5 },
+        { title: 'Code Review', order: 2 },
+        { title: 'QA', order: 3 },
+        { title: 'Done', order: 4 },
+    ],
+    BUG_TRIAGE: [
+        { title: 'Reported', order: 0 },
+        { title: 'Triage', order: 1, wipLimit: 8 },
+        { title: 'Fix In Progress', order: 2, wipLimit: 4 },
+        { title: 'Verify Fix', order: 3 },
+        { title: 'Closed', order: 4 },
+    ],
+    CONTENT: [
         { title: 'Ideas', order: 0 },
-        { title: 'Discovery', order: 1 },
-        { title: 'Delivery', order: 2, wipLimit: 4 },
-        { title: 'Release Prep', order: 3 },
-        { title: 'Shipped', order: 4 },
+        { title: 'Drafting', order: 1, wipLimit: 6 },
+        { title: 'Editing', order: 2, wipLimit: 4 },
+        { title: 'Scheduled', order: 3 },
+        { title: 'Published', order: 4 },
     ],
-    ENGINEERING: [
-        { title: 'Backlog', order: 0 },
-        { title: 'Ready', order: 1 },
-        { title: 'In Development', order: 2, wipLimit: 3 },
-        { title: 'Code Review', order: 3 },
-        { title: 'QA', order: 4 },
-        { title: 'Done', order: 5 },
-    ],
-    SUPPORT: [
-        { title: 'New', order: 0 },
-        { title: 'Triage', order: 1 },
-        { title: 'Investigating', order: 2, wipLimit: 6 },
-        { title: 'Waiting on Customer', order: 3 },
-        { title: 'Resolved', order: 4 },
+    HIRING: [
+        { title: 'Open Roles', order: 0 },
+        { title: 'Screening', order: 1, wipLimit: 10 },
+        { title: 'Interview Loop', order: 2, wipLimit: 6 },
+        { title: 'Offer', order: 3 },
+        { title: 'Hired', order: 4 },
     ],
 };
 

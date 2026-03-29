@@ -452,6 +452,41 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
 
         // If the server rejected it (e.g., a MEMBER dragged to Done)
         if (!result?.success) {
+            if ((result as { code?: string; canOverride?: boolean; blockers?: string[] }).code === 'BLOCKED_TASK') {
+                const blockedResult = result as {
+                    error?: string;
+                    blockers?: string[];
+                    canOverride?: boolean;
+                };
+
+                if (blockedResult.canOverride) {
+                    const blockerSummary = (blockedResult.blockers ?? []).slice(0, 3).join(', ');
+                    const reason = window.prompt(
+                        `This task is blocked by dependencies${blockerSummary ? `: ${blockerSummary}` : ''}. Enter override reason to continue:`
+                    );
+
+                    if (reason && reason.trim()) {
+                        const overrideResult = await moveTask(taskId, newColumnId, realNewOrder, initialBoard.id, {
+                            overrideBlockedDependency: true,
+                            overrideReason: reason.trim(),
+                        });
+
+                        if (!overrideResult?.success) {
+                            setToastMessage(overrideResult?.error ?? 'Move not allowed.');
+                            router.refresh();
+                            return;
+                        }
+
+                        setToastMessage('Moved with dependency override.');
+                        return;
+                    }
+
+                    setToastMessage('Move canceled. Task is still blocked by dependencies.');
+                    router.refresh();
+                    return;
+                }
+            }
+
             setToastMessage(result?.error ?? 'Move not allowed.');
             router.refresh();
         }

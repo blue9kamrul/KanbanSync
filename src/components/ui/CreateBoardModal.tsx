@@ -42,10 +42,12 @@ export default function CreateBoardModal() {
                                 <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Template</label>
                                 <select name="template" disabled={loading} className="ui-field mt-1">
                                     <option value="DEFAULT">Default Workflow</option>
-                                    <option value="PRODUCT">Product Discovery</option>
-                                    <option value="ENGINEERING">Engineering Delivery</option>
-                                    <option value="SUPPORT">Support Operations</option>
+                                    <option value="SPRINT">Sprint Planning</option>
+                                    <option value="BUG_TRIAGE">Bug Triage</option>
+                                    <option value="CONTENT">Content Pipeline</option>
+                                    <option value="HIRING">Hiring Pipeline</option>
                                 </select>
+                                <p className="mt-1 text-[11px] text-gray-500">Choose a preset workflow for one-click board setup.</p>
                             </div>
                             <div>
                                 <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Columns <span className="text-gray-400 font-normal normal-case">(comma-separated)</span></label>
