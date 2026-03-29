@@ -349,6 +349,7 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
 
                     <input
                         type="text"
+                        data-tour="board-search"
                         value={inputValue}
                         onChange={handleSearchChange}
                         placeholder="Search tasks..."
@@ -382,6 +383,7 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
                             setFilterNow(Date.now()); // capture current time so age filters are accurate
                             setIsFilterOpen(o => !o);
                         }}
+                        data-tour="board-filter-button"
                         className={`relative flex items-center gap-2 px-4 py-2 rounded-lg border shadow-sm transition-all text-sm font-medium whitespace-nowrap ${countActiveFilters(filters) > 0
                             ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
                             : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
@@ -410,6 +412,7 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
                 {/* Board Metrics Button */}
                 <button
                     onClick={() => setIsMetricsOpen(true)}
+                    data-tour="board-metrics-button"
                     className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-300 shadow-sm hover:bg-gray-50 hover:border-gray-400 transition-all text-sm font-medium text-gray-700 whitespace-nowrap"
                 >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

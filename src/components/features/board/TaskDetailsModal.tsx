@@ -166,6 +166,7 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                             </span>
                         </div>
                         <textarea
+                            data-tour="task-description-field"
                             className={`w-full h-28 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 resize-none transition-all ${isLeader
                                 ? 'focus:ring-2 focus:ring-blue-500 focus:bg-white focus:border-transparent cursor-text'
                                 : 'opacity-60 cursor-not-allowed'
@@ -239,6 +240,7 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                             <div className="flex-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
                                 <input
                                     type="text"
+                                    data-tour="task-comment-input"
                                     className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 focus:outline-none"
                                     placeholder="Write a comment… type @ to mention"
                                     value={commentText}
@@ -281,6 +283,7 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                         )}
                         {isLeader ? (
                             <select
+                                data-tour="task-assignee-field"
                                 className="w-full px-2.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 cursor-pointer hover:border-blue-300 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
                                 value={task.assigneeId || ''}
                                 onChange={(e) => handleAssign(e.target.value)}
@@ -302,6 +305,7 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Priority</p>
                         {isLeader ? (
                             <select
+                                data-tour="task-priority-field"
                                 className="w-full px-2.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 cursor-pointer hover:border-blue-300 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
                                 value={priority}
                                 onChange={(e) => handlePriorityChange(e.target.value)}
@@ -332,6 +336,7 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                             <>
                                 <input
                                     type="text"
+                                    data-tour="task-tags-field"
                                     className="w-full px-2.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 hover:border-blue-300 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
                                     placeholder="Frontend, UI…"
                                     value={tagsInput}

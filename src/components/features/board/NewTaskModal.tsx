@@ -68,7 +68,7 @@ export default function NewTaskModal({ isOpen, onClose, boardId, columnId, colum
 
     return (
         <Modal isOpen={isOpen} onClose={handleClose} className="max-w-4xl">
-            <div className="flex flex-col md:flex-row h-[75vh]">
+            <div className="flex flex-col md:flex-row h-[75vh]" data-tour="new-task-modal">
 
                 {/* ── LEFT: Main content ───────────────────────────────── */}
                 <div className="flex-1 flex flex-col min-h-0 p-7 pr-6">
@@ -106,6 +106,7 @@ export default function NewTaskModal({ isOpen, onClose, boardId, columnId, colum
                     <div className="mb-5">
                         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Description</h3>
                         <textarea
+                            data-tour="new-task-description"
                             className="w-full h-32 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white focus:border-transparent text-sm text-gray-700 placeholder-gray-400 resize-none transition-all"
                             placeholder="Add a more detailed description…"
                             value={description}
@@ -154,6 +155,7 @@ export default function NewTaskModal({ isOpen, onClose, boardId, columnId, colum
                     <div className="mb-5">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Category</p>
                         <select
+                            data-tour="new-task-category"
                             value={category}
                             onChange={(e) => setCategory(e.target.value as TaskCategory)}
                             className="w-full px-2.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 cursor-pointer hover:border-blue-300 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
@@ -174,6 +176,7 @@ export default function NewTaskModal({ isOpen, onClose, boardId, columnId, colum
                     <div className="mb-5">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Priority</p>
                         <select
+                            data-tour="new-task-priority"
                             value={priority}
                             onChange={(e) => setPriority(e.target.value)}
                             className="w-full px-2.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 cursor-pointer hover:border-blue-300 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
@@ -203,6 +206,7 @@ export default function NewTaskModal({ isOpen, onClose, boardId, columnId, colum
                             </div>
                         )}
                         <select
+                            data-tour="new-task-assignee"
                             value={assigneeId}
                             onChange={(e) => setAssigneeId(e.target.value)}
                             className="w-full px-2.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 cursor-pointer hover:border-blue-300 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
@@ -221,6 +225,7 @@ export default function NewTaskModal({ isOpen, onClose, boardId, columnId, colum
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Tags</p>
                         <input
                             type="text"
+                            data-tour="new-task-tags"
                             placeholder="Frontend, UI, Backend…"
                             value={tagsInput}
                             onChange={(e) => setTagsInput(e.target.value)}

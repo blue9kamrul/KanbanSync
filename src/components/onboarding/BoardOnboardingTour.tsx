@@ -1,0 +1,82 @@
+'use client';
+
+import { useMemo } from 'react';
+import GuidedTour, { GuidedTourStep } from './GuidedTour';
+
+interface BoardOnboardingTourProps {
+    userId: string;
+    forceStart?: boolean;
+}
+
+export default function BoardOnboardingTour({ userId, forceStart = false }: BoardOnboardingTourProps) {
+    const steps = useMemo<GuidedTourStep[]>(() => ([
+        {
+            title: 'Board workspace overview',
+            description: 'This board is your active workspace. You can invite members, monitor progress, and keep all task context in one place.',
+            selector: '[data-tour="board-navbar"]',
+        },
+        {
+            title: 'Search and filter tasks',
+            description: 'Use search and filters to quickly narrow by title, assignee, category, priority, tags, date, age, and comments.',
+            selector: '[data-tour="board-search"]',
+        },
+        {
+            title: 'Metrics and insights',
+            description: 'Open Board Metrics to review cycle-time and throughput trends for better planning.',
+            selector: '[data-tour="board-metrics-button"]',
+        },
+        {
+            title: 'Create tasks with full details',
+            description: 'Use Add Task to set title, category, priority, assignee, tags, and initial description.',
+            selector: '[data-tour="column-add-task"]',
+        },
+        {
+            title: 'Task cards and quick actions',
+            description: 'Every card supports drag-and-drop status changes. Hover cards to access quick edit and delete controls.',
+            selector: '[data-tour="task-card"]',
+            missingHint: 'Create at least one task to see task-card steps in action.',
+        },
+        {
+            title: 'Open task details',
+            description: 'Click a task card to open details, then manage long-form description and comments after creation.',
+            selector: '[data-tour="task-description-field"]',
+            missingHint: 'Open any task card, then click Next to continue this part of the tour.',
+        },
+        {
+            title: 'Comments and mentions',
+            description: 'Post comments and mention teammates with @email to keep communication linked directly to each task.',
+            selector: '[data-tour="task-comment-input"]',
+            missingHint: 'Task details modal must be open to highlight this input.',
+        },
+        {
+            title: 'Priority, assignee, and tags',
+            description: 'In the task sidebar you can adjust assignee, priority, and tags without leaving the board.',
+            selector: '[data-tour="task-priority-field"]',
+            missingHint: 'Task details modal must be open to highlight sidebar fields.',
+        },
+        {
+            title: 'Edit and delete flow',
+            description: 'Use card quick actions and detail controls to edit task content or delete when it is no longer needed.',
+            selector: '[data-tour="task-inline-actions"]',
+            missingHint: 'Hover a task card to reveal quick action buttons.',
+        },
+        {
+            title: 'You are ready',
+            description: 'You now have the full workflow: create, categorize, prioritize, assign, tag, describe, comment, edit, move, and delete tasks.',
+        },
+    ]), []);
+
+    return (
+        <GuidedTour
+            userId={userId}
+            storageKey="board-onboarding-v1"
+            tourName="Board Feature Tour"
+            steps={steps}
+            forceStart={forceStart}
+            finishLabel="Start working"
+            onFinish={() => {
+                sessionStorage.removeItem('ks-board-tour-pending');
+            }}
+        />
+    );
+}

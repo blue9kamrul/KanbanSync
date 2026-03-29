@@ -5,11 +5,20 @@ import { getUserRole } from '../../../lib/permission';
 import BoardNavbar from '../../../components/ui/BoardNavbar';
 import { auth, signOut } from '../../../../auth';
 import Link from 'next/link';
+import BoardOnboardingTour from '../../../components/onboarding/BoardOnboardingTour';
 
 export const dynamic = 'force-dynamic';
 
-export default async function BoardPage({ params }: { params: Promise<{ boardId: string }> }) {
+export default async function BoardPage({
+    params,
+    searchParams,
+}: {
+    params: Promise<{ boardId: string }>;
+    searchParams: Promise<{ tour?: string }>;
+}) {
     const { boardId } = await params;
+    const query = await searchParams;
+    const forceTour = query?.tour === '1';
 
     // Resolve auth first — needed by both getBoardData and getUserRole.
     // Keeping it outside Promise.all prevents notFound() from being swallowed
@@ -66,6 +75,8 @@ export default async function BoardPage({ params }: { params: Promise<{ boardId:
             <div className="flex-1 overflow-y-auto p-6">
                 <KanbanBoard initialBoard={board} userRole={userRole} currentUserEmail={session?.user?.email ?? ''} />
             </div>
+
+            <BoardOnboardingTour userId={session?.user?.id ?? ''} forceStart={forceTour} />
         </div>
     );
 }

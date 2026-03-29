@@ -3,6 +3,7 @@ import { prisma } from '../lib/db';
 import { redirect } from 'next/navigation';
 import BoardsGrid from '../components/ui/BoardsGrid';
 import DashboardNavbar from '../components/ui/DashboardNavbar';
+import DashboardOnboardingTour from '../components/onboarding/DashboardOnboardingTour';
 
 export default async function Dashboard() {
   const session = await auth();
@@ -40,13 +41,13 @@ export default async function Dashboard() {
 
       <main className="flex-1 px-6 py-10 max-w-7xl mx-auto w-full">
         {/* Page heading */}
-        <div className="mb-8">
+        <div className="mb-8" data-tour="dashboard-title">
           <h1 className="text-2xl font-bold text-gray-900">Your Boards</h1>
           <p className="text-gray-500 mt-1">Welcome back, {session.user.name}</p>
         </div>
 
         {boards.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="flex flex-col items-center justify-center py-24 text-center" data-tour="dashboard-empty-state">
             <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mb-4">
               <svg viewBox="0 0 24 24" fill="none" className="w-8 h-8 text-blue-500" xmlns="http://www.w3.org/2000/svg">
                 <rect x="3" y="3" width="7" height="9" rx="1.5" fill="currentColor" opacity="0.9" />
@@ -64,6 +65,12 @@ export default async function Dashboard() {
           </div>
         )}
       </main>
+
+      <DashboardOnboardingTour
+        userId={dbUser.id}
+        firstBoardId={boards[0]?.id}
+        boardCount={boards.length}
+      />
     </div>
   );
 }

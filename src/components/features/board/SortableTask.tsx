@@ -120,6 +120,7 @@ export default memo(function SortableTask({ task, boardId, members, currentUserE
                 style={style}
                 {...attributes}
                 {...listeners}
+                data-tour="task-card"
                 className={`group bg-white rounded-xl border border-l-[3px] transition-all duration-150 cursor-grab active:cursor-grabbing select-none
                     ${getPriorityAccent(task.priority)}
                     ${isDragging
@@ -152,10 +153,11 @@ export default memo(function SortableTask({ task, boardId, members, currentUserE
                         </div>
 
                         {/* Right cluster: action buttons — appear on hover */}
-                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 shrink-0">
+                        <div data-tour="task-inline-actions" className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 shrink-0">
                             <button
                                 onPointerDown={(e) => e.stopPropagation()}
                                 onClick={(e) => { e.stopPropagation(); setIsDetailsOpen(true); }}
+                                data-tour="task-edit-button"
                                 className="p-1 rounded-md text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                                 aria-label="Edit task"
                             >
@@ -169,6 +171,7 @@ export default memo(function SortableTask({ task, boardId, members, currentUserE
                                     onPointerDown={(e) => e.stopPropagation()}
                                     onClick={(e) => { e.stopPropagation(); setIsDeleteModalOpen(true); }}
                                     disabled={isPendingDelete}
+                                    data-tour="task-delete-button"
                                     className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40"
                                     aria-label="Delete task"
                                 >

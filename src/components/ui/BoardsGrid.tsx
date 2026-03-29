@@ -24,6 +24,7 @@ export default function BoardsGrid({ boards }: { boards: Board[] }) {
                 <Link
                     href={`/board/${board.id}`}
                     key={board.id}
+                    data-tour={board.id === visible[0]?.id ? 'open-board-card' : undefined}
                     className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition-all group h-32 flex flex-col justify-between"
                 >
                     <div>

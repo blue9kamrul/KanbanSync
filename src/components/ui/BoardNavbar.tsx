@@ -44,7 +44,7 @@ export default function BoardNavbar({
 
     return (
         <>
-            <nav className="sticky top-0 z-40 w-full bg-white border-b border-gray-200 shadow-sm">
+            <nav data-tour="board-navbar" className="sticky top-0 z-40 w-full bg-white border-b border-gray-200 shadow-sm">
                 <div className="px-4 sm:px-6 h-16 flex items-center gap-3">
 
                     {/* ── Brand / back link ──────────────────────────── */}

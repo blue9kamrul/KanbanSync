@@ -109,6 +109,7 @@ export default memo(function BoardColumn({ column, boardId, userRole, members, c
                     <button
                         onClick={() => setIsModalOpen(true)}
                         disabled={isAtLimit}
+                        data-tour="column-add-task"
                         className="w-full py-2 flex items-center justify-center gap-1.5 text-sm font-medium text-gray-500
                             hover:text-gray-700 hover:bg-white/70 rounded-xl transition-all duration-150
                             disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent border border-dashed border-gray-300 hover:border-gray-400"
