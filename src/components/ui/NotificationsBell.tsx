@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { getPusherClient } from '../../lib/pusher';
 import {
     acceptInvite,
@@ -39,6 +40,7 @@ function Spinner() {
 }
 
 export default function NotificationsBell({ userId }: { userId: string }) {
+    const router = useRouter();
     const [items, setItems] = useState<NotificationItem[]>([]);
     const [open, setOpen] = useState(false);
     // Track which inviteId is currently mid-request
@@ -160,6 +162,19 @@ export default function NotificationsBell({ userId }: { userId: string }) {
         }
     };
 
+    const getNotificationHref = (item: NotificationItem) => {
+        if (item.boardId) return `/board/${item.boardId}`;
+        return null;
+    };
+
+    const handleOpenNotification = async (item: NotificationItem, idx: number) => {
+        await handleMarkRead(item, idx);
+        const href = getNotificationHref(item);
+        if (!href) return;
+        setOpen(false);
+        router.push(href);
+    };
+
     return (
         <div className="relative" ref={containerRef}>
             {/* Bell button */}
@@ -206,6 +221,7 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                             const isProcessing = inviteId ? processing.has(inviteId) : false;
                             const result = inviteId ? results.get(inviteId) : undefined;
                             const isInvite = it.type === 'board-invite' && inviteId;
+                            const href = getNotificationHref(it);
 
                             return (
                                 <div key={it.id ?? idx} className={`px-4 py-3.5 transition-colors ${it.read ? 'opacity-70 hover:bg-gray-50' : 'hover:bg-blue-50/40'}`}>
@@ -365,6 +381,14 @@ export default function NotificationsBell({ userId }: { userId: string }) {
                                                     className="flex items-center gap-1 px-3 py-1.5 border border-gray-200 hover:bg-gray-100 text-gray-500 text-xs font-medium rounded-lg transition-colors"
                                                 >
                                                     Mark read
+                                                </button>
+                                            )}
+                                            {!isInvite && href && (
+                                                <button
+                                                    onClick={() => handleOpenNotification(it, idx)}
+                                                    className="flex items-center gap-1 px-3 py-1.5 border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg transition-colors"
+                                                >
+                                                    Open
                                                 </button>
                                             )}
                                         </div>

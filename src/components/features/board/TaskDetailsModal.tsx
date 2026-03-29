@@ -17,7 +17,7 @@ import {
     addTaskTimeEntry,
     deleteTaskTimeEntry,
 } from '../../../actions/detailActions';
-import { updateTask } from '../../../actions/taskActions';
+import { archiveTask, updateTask } from '../../../actions/taskActions';
 import { formatDistanceToNow } from 'date-fns';
 import { BoardWithColumnsAndTasks } from '../../../types/board';
 import { BoardRole } from '../../../generated/prisma/enums';
@@ -135,6 +135,7 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
     const [timeNote, setTimeNote] = useState('');
     const [gitLinkType, setGitLinkType] = useState<'PR' | 'Commit' | 'Branch'>('PR');
     const [gitLinkUrl, setGitLinkUrl] = useState('');
+    const [archiveError, setArchiveError] = useState<string | null>(null);
 
     const priorityOptions = [
         { value: 'URGENT', label: 'Urgent' },
@@ -177,9 +178,11 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
 
     const cat = categoryConfig[task.category] ?? { label: task.category, color: 'bg-gray-100 text-gray-600' };
     const assignee = members.find(m => m.user.id === task.assigneeId);
+    const currentMember = members.find((m) => m.user.email === currentUserEmail);
     const isLeader = members.some(
         (m) => m.user.email === currentUserEmail && m.role === BoardRole.LEADER
     );
+    const canManageArchive = currentMember?.role === BoardRole.LEADER || currentMember?.role === BoardRole.REVIEWER;
 
     const handleDescriptionSave = () => {
         if (description !== task.description) {
@@ -369,6 +372,18 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
     const handleSaveAndClose = () => {
         handleApplyAll();
         onClose();
+    };
+
+    const handleArchiveAndClose = () => {
+        setArchiveError(null);
+        startTransition(async () => {
+            const result = await archiveTask(task.id, boardId);
+            if (!result?.success) {
+                setArchiveError(result?.error ?? 'Failed to archive task');
+                return;
+            }
+            onClose();
+        });
     };
 
     return (
@@ -1028,6 +1043,22 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                             </div>
                         )}
                     </div>
+
+                    {canManageArchive && task.status !== 'ARCHIVED' && (
+                        <div className="mb-3 rounded-xl border border-rose-200/70 bg-rose-50/35 p-3">
+                            <SideSectionTitle label="Archive" dotColor="bg-rose-500" />
+                            <p className="text-[11px] text-slate-500 mb-2">Archive removes this task from active columns without deleting history.</p>
+                            <button
+                                type="button"
+                                onClick={handleArchiveAndClose}
+                                disabled={isPending}
+                                className="w-full px-3 py-2 bg-rose-600 text-white text-xs font-semibold rounded-lg hover:bg-rose-700 disabled:opacity-40"
+                            >
+                                {isPending ? 'Archiving...' : 'Archive Task'}
+                            </button>
+                            {archiveError && <p className="text-[11px] text-rose-600 mt-2">{archiveError}</p>}
+                        </div>
+                    )}
 
                     {/* Divider */}
                     <div className="border-t border-slate-200 my-1" />
