@@ -69,14 +69,17 @@ const getCategoryColor = (category: TaskCategory) => {
 };
 
 // Assignee avatar with tooltip
-function AssigneeAvatar({ name }: { name?: string | null }) {
+function AssigneeAvatar({ name, image }: { name?: string | null; image?: string | null }) {
     const initial = name?.[0]?.toUpperCase() ?? '?';
     return (
         <div
-            className="w-6 h-6 rounded-full bg-linear-to-br from-blue-500 to-blue-700 text-[10px] font-bold text-white flex items-center justify-center ring-2 ring-white shrink-0"
+            className="w-6 h-6 rounded-full bg-linear-to-br from-blue-500 to-blue-700 text-[10px] font-bold text-white flex items-center justify-center ring-2 ring-white shrink-0 overflow-hidden"
             title={name ?? 'Assigned'}
         >
-            {initial}
+            {image
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={image} alt={name ?? 'Assignee'} className="w-full h-full object-cover" />
+                : initial}
         </div>
     );
 }
@@ -173,7 +176,7 @@ export default memo(function SortableTask({ task, boardId, members, currentUserE
                             </span>
                             {hasPriority && <PriorityIcon priority={task.priority} />}
                             {task.assignee
-                                ? <AssigneeAvatar name={task.assignee.name} />
+                                ? <AssigneeAvatar name={task.assignee.name} image={task.assignee.image} />
                                 : (
                                     <div className="w-5 h-5 rounded-full border border-dashed border-gray-300 flex items-center justify-center shrink-0" title="Unassigned">
                                         <svg className="w-2.5 h-2.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

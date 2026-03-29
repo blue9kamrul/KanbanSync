@@ -121,9 +121,9 @@ export const getBoardData = cache(async (boardId: string): Promise<BoardWithColu
                     tasks: c.tasks.map((t) => ({
                         ...t,
                         activities: [],
-                            blocking: [],
-                            blockedBy: [],
-                            timeEntries: [],
+                        blocking: [],
+                        blockedBy: [],
+                        timeEntries: [],
                         subtasks: [],
                         attachments: [],
                     })),

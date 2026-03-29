@@ -10,6 +10,7 @@ import { getPusherClient } from '../../../lib/pusher';
 
 import BoardColumn from './BoardColumn';
 import MetricsModal from './MetricsModal';
+import BoardAuditLogModal from './BoardAuditLogModal';
 import FilterPanel, { DEFAULT_FILTERS, countActiveFilters, FilterState, TASK_CATEGORIES } from './FilterPanel';
 // import { TaskStatus } from '../../../types/board';
 
@@ -40,6 +41,7 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
     const [activeTask, setActiveTask] = useState<TaskType | null>(null);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
     const [isMetricsOpen, setIsMetricsOpen] = useState(false);
+    const [isAuditOpen, setIsAuditOpen] = useState(false);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [isViewsOpen, setIsViewsOpen] = useState(false);
     const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
@@ -122,6 +124,10 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
     // The concurrent hook
     const [isPending, startTransition] = useTransition();
     const allBoardTasks = useMemo(() => optimisticColumns.flatMap((c) => c.tasks), [optimisticColumns]);
+    const currentUserId = useMemo(
+        () => initialBoard.members.find((m) => m.user.email === currentUserEmail)?.user.id,
+        [initialBoard.members, currentUserEmail]
+    );
 
     // The Real-Time Subscription
     useEffect(() => {
@@ -159,6 +165,17 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
     const clearSearch = () => {
         setInputValue('');
         startTransition(() => setSearchQuery(''));
+    };
+
+    const applyMyTasksPreset = () => {
+        if (!currentUserId) return;
+        setFilters({ ...DEFAULT_FILTERS, assignees: [currentUserId], sortBy: 'newest' });
+        setFilterNow(Date.now());
+    };
+
+    const applyStaleTasksPreset = () => {
+        setFilters({ ...DEFAULT_FILTERS, ageFilter: 'stale', commentFilter: 'without', sortBy: 'longest' });
+        setFilterNow(Date.now());
     };
 
     // Memoize the filter + sort so it doesn't recalculate during 60fps dragging
@@ -511,6 +528,32 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
                     </svg>
                     Board Metrics
                 </button>
+
+                <button
+                    onClick={() => setIsAuditOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/90 border border-slate-300 shadow-sm hover:bg-white hover:border-slate-400 transition-all text-sm font-medium text-gray-700 whitespace-nowrap"
+                >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Audit Log
+                </button>
+
+                {currentUserId && (
+                    <button
+                        onClick={applyMyTasksPreset}
+                        className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-cyan-50 border border-cyan-200 text-cyan-700 hover:bg-cyan-100 transition-all text-xs font-semibold"
+                    >
+                        My Tasks
+                    </button>
+                )}
+
+                <button
+                    onClick={applyStaleTasksPreset}
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 transition-all text-xs font-semibold"
+                >
+                    Stale Tasks
+                </button>
             </div>
 
             {/* Active filter chips */}
@@ -568,6 +611,7 @@ export default function KanbanBoard({ initialBoard, userRole, currentUserEmail }
 
             {/* Metrics Modal */}
             <MetricsModal board={initialBoard} isOpen={isMetricsOpen} onClose={() => setIsMetricsOpen(false)} />
+            <BoardAuditLogModal board={initialBoard} isOpen={isAuditOpen} onClose={() => setIsAuditOpen(false)} />
 
             <DndContext
                 id="kanban-board"

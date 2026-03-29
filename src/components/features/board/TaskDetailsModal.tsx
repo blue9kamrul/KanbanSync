@@ -64,6 +64,31 @@ const priorityConfig: Record<string, { label: string; sign: string; cls: string 
     NONE: { label: 'None', sign: '-', cls: 'bg-gray-100 text-gray-500 border-gray-200' },
 };
 
+function PriorityIcon({ priority, className = '' }: { priority: string; className?: string }) {
+    const base = `w-3.5 h-3.5 shrink-0 ${className}`;
+    if (priority === 'URGENT') return (
+        <svg className={`${base} text-red-600`} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-label="Urgent priority">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+        </svg>
+    );
+    if (priority === 'HIGH') return (
+        <svg className={`${base} text-orange-500`} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-label="High priority">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+        </svg>
+    );
+    if (priority === 'MEDIUM') return (
+        <svg className={`${base} text-sky-500`} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-label="Medium priority">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 12H4" />
+        </svg>
+    );
+    if (priority === 'LOW') return (
+        <svg className={`${base} text-green-500`} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-label="Low priority">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+        </svg>
+    );
+    return null;
+}
+
 // Priority badge shown when the user is not a Leader
 function PriorityBadge({ priority }: { priority: string }) {
     const { label, cls, sign } = priorityConfig[priority] ?? priorityConfig.NONE;
@@ -99,6 +124,14 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
     const [timeEntries, setTimeEntries] = useState<TimeEntryType[]>(task.timeEntries ?? []);
     const [timeMinutes, setTimeMinutes] = useState('');
     const [timeNote, setTimeNote] = useState('');
+
+    const priorityOptions = [
+        { value: 'URGENT', label: 'Urgent' },
+        { value: 'HIGH', label: 'High' },
+        { value: 'MEDIUM', label: 'Medium' },
+        { value: 'LOW', label: 'Low' },
+        { value: 'NONE', label: 'None' },
+    ];
 
     // Detect @word at the end of the current comment text
     const handleCommentChange = (val: string) => {
@@ -300,8 +333,8 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} className="max-w-6xl">
-            <div className="flex flex-col md:flex-row h-[86vh] max-h-[86vh] overflow-hidden app-bg">
+        <Modal isOpen={isOpen} onClose={onClose} className="max-w-7xl">
+            <div className="flex flex-col md:flex-row h-[92vh] max-h-[92vh] overflow-hidden app-bg">
 
                 {/* ── LEFT: Main content ───────────────────────────────── */}
                 <div className="flex-1 flex flex-col min-h-0 px-7 pb-10 pt-4 overflow-y-auto">
@@ -568,11 +601,11 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                             <div className="w-7 h-7 rounded-full bg-linear-to-br from-violet-400 to-purple-500 flex items-center justify-center text-[11px] font-bold text-white shrink-0">
                                 {currentUserEmail?.[0]?.toUpperCase() || 'M'}
                             </div>
-                            <div className="flex-1 flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all shadow-xs">
+                            <div className="flex-1 flex items-center gap-2 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all shadow-xs">
                                 <input
                                     type="text"
                                     data-tour="task-comment-input"
-                                    className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 focus:outline-none"
+                                    className="flex-1 bg-transparent text-sm text-gray-800 placeholder-slate-500 focus:outline-none"
                                     placeholder="Write a comment… type @ to mention"
                                     value={commentText}
                                     onChange={(e) => handleCommentChange(e.target.value)}
@@ -594,7 +627,7 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                 </div>
 
                 {/* ── RIGHT: Sidebar ───────────────────────────────────── */}
-                <div className="w-full md:w-72 shrink-0 flex flex-col gap-2 bg-slate-50/95 border-l border-slate-200/70 p-5 rounded-r-2xl overflow-y-auto">
+                <div className="w-full md:w-80 shrink-0 flex flex-col gap-2 bg-slate-50/95 border-l border-slate-200/70 p-5 rounded-r-2xl overflow-y-auto">
 
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.18em] mb-1">Task Settings</p>
 
@@ -637,20 +670,31 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     <div className="mb-3 app-surface rounded-xl border border-slate-200/70 p-3">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Priority</p>
                         {isLeader ? (
-                            <select
-                                data-tour="task-priority-field"
-                                className="w-full px-2.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 cursor-pointer hover:border-blue-300 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
-                                value={priority}
-                                onChange={(e) => handlePriorityChange(e.target.value)}
-                            >
-                                <option value="URGENT">!! Urgent</option>
-                                <option value="HIGH">! High</option>
-                                <option value="MEDIUM">~ Medium</option>
-                                <option value="LOW">v Low</option>
-                                <option value="NONE">- None</option>
-                            </select>
+                            <div data-tour="task-priority-field" className="grid grid-cols-2 gap-1.5">
+                                {priorityOptions.map((opt) => (
+                                    <button
+                                        key={opt.value}
+                                        type="button"
+                                        onClick={() => handlePriorityChange(opt.value)}
+                                        className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs font-semibold transition-colors ${priority === opt.value
+                                            ? 'bg-blue-600 text-white border-blue-600'
+                                            : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300'
+                                            }`}
+                                    >
+                                        {opt.value !== 'NONE' ? (
+                                            <PriorityIcon priority={opt.value} className={priority === opt.value ? 'text-white' : ''} />
+                                        ) : (
+                                            <span className="w-3.5 h-3.5 inline-flex items-center justify-center text-[11px]">-</span>
+                                        )}
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
                         ) : (
-                            <PriorityBadge priority={priority} />
+                            <div className="flex items-center gap-2">
+                                <PriorityBadge priority={priority} />
+                                {priority !== 'NONE' && <PriorityIcon priority={priority} />}
+                            </div>
                         )}
                     </div>
 
@@ -747,6 +791,9 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                     {/* Dependencies */}
                     <div className="mb-3 app-surface rounded-xl border border-slate-200/70 p-3">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Dependencies</p>
+                        <p className="text-[11px] text-slate-500 mb-2">
+                            Dependency means this task cannot move forward until its blocker task is completed.
+                        </p>
 
                         <div className="space-y-2 max-h-28 overflow-y-auto pr-1">
                             {blocking.length === 0 ? (
@@ -770,7 +817,15 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                         </div>
 
                         {blockedBy.length > 0 && (
-                            <p className="text-[11px] text-slate-500 mt-2">This task blocks {blockedBy.length} other task{blockedBy.length > 1 ? 's' : ''}.</p>
+                            <div className="mt-2">
+                                <p className="text-[11px] text-slate-500 mb-1">This task blocks:</p>
+                                <div className="space-y-1">
+                                    {blockedBy.slice(0, 3).map((dep) => (
+                                        <p key={dep.id} className="text-[11px] text-slate-700 bg-white border border-slate-200 rounded-md px-2 py-1 truncate">{dep.task.title}</p>
+                                    ))}
+                                    {blockedBy.length > 3 && <p className="text-[10px] text-slate-400">+{blockedBy.length - 3} more</p>}
+                                </div>
+                            </div>
                         )}
 
                         {isLeader && (
@@ -782,7 +837,9 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                                 >
                                     <option value="">Select blocker task</option>
                                     {availableDependencyTargets.map((candidate) => (
-                                        <option key={candidate.id} value={candidate.id}>{candidate.title}</option>
+                                        <option key={candidate.id} value={candidate.id}>
+                                            {`${candidate.title} · ${(candidate.column?.title ?? 'Task')} · ${candidate.priority}`}
+                                        </option>
                                     ))}
                                 </select>
                                 <button
@@ -839,20 +896,19 @@ export default function TaskDetailsModal({ isOpen, onClose, task, boardId, membe
                                 placeholder="Minutes"
                                 className="w-full px-2.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 hover:border-blue-300 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
                             />
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="text"
+                            <div className="space-y-2">
+                                <textarea
                                     value={timeNote}
                                     onChange={(e) => setTimeNote(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleAddTimeEntry()}
                                     placeholder="Optional note"
-                                    className="flex-1 px-2.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 hover:border-blue-300 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
+                                    rows={3}
+                                    className="w-full px-2.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 hover:border-blue-300 focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none resize-y min-h-20"
                                 />
                                 <button
                                     type="button"
                                     onClick={handleAddTimeEntry}
                                     disabled={!timeMinutes || Number(timeMinutes) <= 0}
-                                    className="px-3 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 disabled:opacity-40"
+                                    className="w-full px-3 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 disabled:opacity-40"
                                 >
                                     Log
                                 </button>
