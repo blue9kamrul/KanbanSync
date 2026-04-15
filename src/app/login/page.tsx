@@ -1,7 +1,15 @@
 // src/app/login/page.tsx
-import { loginWithGithub, loginWithGoogle } from '../../actions/authActions';
+import { loginWithCredentials, loginWithGithub, loginWithGoogle } from '../../actions/authActions';
+import { DEMO_ACCOUNT } from '../../lib/demoAccount';
 
-export default function LoginPage() {
+export default async function LoginPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ error?: string }>;
+}) {
+    const query = await searchParams;
+    const errorMessage = query?.error ? decodeURIComponent(query.error) : null;
+
     return (
         <div className="min-h-screen app-bg flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-md w-full app-surface border border-slate-200/70 p-10 rounded-3xl shadow-xl anim-panel-in">
@@ -20,6 +28,41 @@ export default function LoginPage() {
                     <p className="mt-2 text-sm text-slate-600">
                         Sign in to access boards, tasks, timelines, and team collaboration.
                     </p>
+                </div>
+
+                {errorMessage ? (
+                    <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                        {errorMessage}
+                    </div>
+                ) : null}
+
+                <form action={loginWithCredentials} className="space-y-3.5 mb-5">
+                    <input
+                        type="email"
+                        name="email"
+                        required
+                        placeholder="you@example.com"
+                        className="w-full rounded-xl border border-slate-300 px-3 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    />
+                    <input
+                        type="password"
+                        name="password"
+                        required
+                        placeholder="Password"
+                        className="w-full rounded-xl border border-slate-300 px-3 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    />
+                    <button
+                        type="submit"
+                        className="w-full flex justify-center py-3 px-4 rounded-xl text-sm font-semibold text-white bg-cyan-700 hover:bg-cyan-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-600 transition-colors"
+                    >
+                        Sign in with Email
+                    </button>
+                </form>
+
+                <div className="mb-5 rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-3 text-xs text-cyan-900">
+                    <p className="font-semibold mb-1">Demo account</p>
+                    <p>Email: {DEMO_ACCOUNT.email}</p>
+                    <p>Password: {DEMO_ACCOUNT.password}</p>
                 </div>
 
                 <div className="space-y-3.5">
@@ -53,7 +96,7 @@ export default function LoginPage() {
                     </form>
                 </div>
 
-                <p className="text-center text-xs text-slate-400 mt-6">Secure OAuth login · no password stored by KanbanSync</p>
+                <p className="text-center text-xs text-slate-400 mt-6">OAuth and email/password login are both supported.</p>
             </div>
         </div>
     );

@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "test:metrics": "tsx src/scripts/test-metrics.ts",
+    "seed:demo-user": "tsx prisma/seed-demo-user.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
