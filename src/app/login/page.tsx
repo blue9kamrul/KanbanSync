@@ -1,6 +1,7 @@
 // src/app/login/page.tsx
 import { loginWithCredentials, loginWithGithub, loginWithGoogle } from '../../actions/authActions';
 import { DEMO_ACCOUNT } from '../../lib/demoAccount';
+import CredentialsLoginForm from '../../components/ui/CredentialsLoginForm';
 
 export default async function LoginPage({
     searchParams,
@@ -36,28 +37,11 @@ export default async function LoginPage({
                     </div>
                 ) : null}
 
-                <form action={loginWithCredentials} className="space-y-3.5 mb-5">
-                    <input
-                        type="email"
-                        name="email"
-                        required
-                        placeholder="you@example.com"
-                        className="w-full rounded-xl border border-slate-300 px-3 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                    />
-                    <input
-                        type="password"
-                        name="password"
-                        required
-                        placeholder="Password"
-                        className="w-full rounded-xl border border-slate-300 px-3 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                    />
-                    <button
-                        type="submit"
-                        className="w-full flex justify-center py-3 px-4 rounded-xl text-sm font-semibold text-white bg-cyan-700 hover:bg-cyan-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-600 transition-colors"
-                    >
-                        Sign in with Email
-                    </button>
-                </form>
+                <CredentialsLoginForm
+                    action={loginWithCredentials}
+                    demoEmail={DEMO_ACCOUNT.email}
+                    demoPassword={DEMO_ACCOUNT.password}
+                />
 
                 <div className="mb-5 rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-3 text-xs text-cyan-900">
                     <p className="font-semibold mb-1">Demo account</p>
